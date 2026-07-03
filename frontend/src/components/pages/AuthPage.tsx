@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, CheckCircle, Upload, FileText, MapPin, Leaf, FlaskConical, User, ArrowRight } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle, Upload, FileText, MapPin, Leaf, FlaskConical, User, ArrowRight, Truck } from 'lucide-react'
 import { useAuthStore, UserRole } from '@/stores/authStore'
 import api from '@/lib/api'
 
@@ -12,6 +12,7 @@ const ROLE_CONFIG = {
   consumer: { bg: 'bg-gold',      title: 'Consumer Portal',   redirect: '/consumer-portal',    icon: User,         color: 'gold'      },
   lab:      { bg: 'bg-secondary', title: 'Laboratory Portal', redirect: '/laboratory-testing', icon: FlaskConical, color: 'secondary' },
   admin:    { bg: 'bg-secondary', title: 'Admin Portal',      redirect: '/admin', icon: User, color: 'secondary' },
+  logistics:{ bg: 'bg-gold',      title: 'Logistics Portal',  redirect: '/logistics',          icon: Truck,        color: 'gold'      },
 }
 
 const F = ({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) => (
@@ -37,6 +38,8 @@ export default function AuthPage({ role, type }: AuthPageProps) {
     lab_name: '', lab_licence_no: '', lab_accreditation: '', lab_address: '',
     // Consumer
     govt_id_type: '', govt_id_number: '',
+    // Logistics
+    courier_name: '', vehicle_number: '',
     notes: '',
   })
   const [files, setFiles] = useState<Record<string, File | null>>({
@@ -162,6 +165,19 @@ export default function AuthPage({ role, type }: AuthPageProps) {
                 'Verify product authenticity via QR',
                 'View full supply chain transparency',
                 'Blockchain-verified product history',
+              ].map(f => (
+                <div key={f} className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                    <CheckCircle size={11} className="text-white" />
+                  </div>
+                  <span className="font-body text-sm text-white/85">{f}</span>
+                </div>
+              ))}
+              {role === 'logistics' && [
+                'Dispatch shipments with a single-use QR',
+                'Auto-filled courier name & vehicle number',
+                'Confirm deliveries with mandatory GPS proof',
+                'Every handoff recorded on Hyperledger Fabric',
               ].map(f => (
                 <div key={f} className="flex items-center gap-3">
                   <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
@@ -331,6 +347,28 @@ export default function AuthPage({ role, type }: AuthPageProps) {
                       <FileUploadField accept=".pdf,.jpg,.jpeg,.png" onChange={f => setFile('govt_id', f)}
                         current={files.govt_id} icon={<FileText size={14} />} required />
                     </F>
+                  </div>
+                )}
+
+                {/* ── LOGISTICS fields ── */}
+                {role === 'logistics' && (
+                  <div className="border border-yellow-200 bg-yellow-50/50 p-5 flex flex-col gap-4">
+                    <p className="font-heading text-xs uppercase tracking-widest text-yellow-700 flex items-center gap-2">
+                      <Truck size={12} /> Courier / Transporter Details
+                    </p>
+                    <p className="font-body text-xs text-secondary/50">
+                      These become your default courier name and vehicle number — they'll auto-fill every time you dispatch a shipment, so you won't have to retype them.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <F label="Courier / Company Name *">
+                        <input className="form-input" type="text" placeholder="e.g. ST Courier"
+                          value={form.courier_name} onChange={e => set('courier_name', e.target.value)} required />
+                      </F>
+                      <F label="Default Vehicle Number *">
+                        <input className="form-input" type="text" placeholder="e.g. TN 42 BY 1355"
+                          value={form.vehicle_number} onChange={e => set('vehicle_number', e.target.value)} required />
+                      </F>
+                    </div>
                   </div>
                 )}
 

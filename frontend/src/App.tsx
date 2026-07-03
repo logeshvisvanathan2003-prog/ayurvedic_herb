@@ -60,6 +60,10 @@ export default function App() {
         <Route path="/lab-login"    element={<AuthPage role="lab"      type="login" />} />
         <Route path="/lab-register" element={<AuthPage role="lab"      type="register" />} />
 
+        {/* ── Logistics — courier/transporter accounts, admin approval ── */}
+        <Route path="/logistics-login"    element={<AuthPage role="logistics" type="login" />} />
+        <Route path="/logistics-register" element={<AuthPage role="logistics" type="register" />} />
+
         {/* ── Consumer — register requires govt ID + admin approval ── */}
         <Route path="/consumer-login"    element={<AuthPage role="consumer" type="login" />} />
         <Route path="/consumer-register" element={<AuthPage role="consumer" type="register" />} />

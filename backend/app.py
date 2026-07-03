@@ -327,8 +327,8 @@ def register():
     role = data['role']
     if role == 'admin':
         return jsonify({'error':'Admin accounts use the /admin-register page with a secret key'}),400
-    if role not in ('farmer','consumer','lab'):
-        return jsonify({'error':'Role must be: farmer, consumer, or lab'}),400
+    if role not in ('farmer','consumer','lab','logistics'):
+        return jsonify({'error':'Role must be: farmer, consumer, lab, or logistics'}),400
     if len(data['password'])<6: return jsonify({'error':'Password min 6 chars'}),400
 
     # Document validation
@@ -341,6 +341,9 @@ def register():
     elif role=='consumer':
         if not request.files.get('govt_id'): return jsonify({'error':'Government ID document is required'}),400
         if not data.get('govt_id_type') or not data.get('govt_id_number'): return jsonify({'error':'Govt ID type and number are required'}),400
+    elif role=='logistics':
+        if not data.get('courier_name'): return jsonify({'error':'Courier/company name is required'}),400
+        if not data.get('vehicle_number'): return jsonify({'error':'Default vehicle number is required'}),400
 
     pw = bcrypt.hashpw(data['password'].encode(),bcrypt.gensalt()).decode()
 
@@ -376,9 +379,10 @@ def register():
             id,user_id,land_area_acres,land_survey_no,
             land_district,land_state,farming_type,
             lab_name,lab_licence_no,lab_accreditation,
-            lab_address,govt_id_type,govt_id_number,notes
+            lab_address,govt_id_type,govt_id_number,notes,
+            courier_name,vehicle_number
         )
-        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """,(
             profile_id,
             uid,
@@ -393,7 +397,9 @@ def register():
             data.get('lab_address'),
             data.get('govt_id_type'),
             data.get('govt_id_number'),
-            data.get('notes')
+            data.get('notes'),
+            data.get('courier_name'),
+            data.get('vehicle_number')
         ))
 
         # DOCUMENTS (explicit id to avoid NULL id on older DBs without DEFAULT)
@@ -554,6 +560,20 @@ def login():
 
         token = jwt.encode({'user_id':str(user['id']),'email':user['email'],'role':user['role'],'exp':datetime.utcnow()+timedelta(days=7)},app.config['SECRET_KEY'],algorithm='HS256')
         return jsonify({'token':token,'user':{'id':str(user['id']),'email':user['email'],'role':user['role'],'full_name':user['full_name']}})
+    except Exception as e: return jsonify({'error':str(e)}),500
+
+
+@app.route('/api/logistics/my-profile', methods=['GET'])
+@token_required
+def my_logistics_profile(cu):
+    """Returns the logged-in user's saved courier name / vehicle number
+    (set at registration for logistics accounts) so dispatch forms can
+    prefill automatically instead of retyping every time."""
+    try:
+        conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT courier_name,vehicle_number FROM user_profiles WHERE user_id=%s",(cu['user_id'],))
+        profile=cur.fetchone(); cur.close(); conn.close()
+        return jsonify(serialize(dict(profile)) if profile else {'courier_name':None,'vehicle_number':None})
     except Exception as e: return jsonify({'error':str(e)}),500
 
 
@@ -1028,7 +1048,7 @@ def logistics_scan(token):
 
 @app.route('/api/logistics/dispatch', methods=['POST'])
 @token_required
-@role_required('farmer','lab','admin')
+@role_required('farmer','lab','admin','logistics')
 def dispatch_shipment(cu):
     data=request.get_json() or {}
     bid=(data.get('batch_id') or '').strip()
@@ -1073,7 +1093,7 @@ def dispatch_shipment(cu):
 
 @app.route('/api/logistics/confirm-delivery', methods=['POST'])
 @token_required
-@role_required('farmer','lab','admin')
+@role_required('farmer','lab','admin','logistics')
 def confirm_delivery(cu):
     data=request.get_json() or {}
     token=(data.get('transfer_token') or '').strip()

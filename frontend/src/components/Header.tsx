@@ -30,6 +30,7 @@ export default function Header() {
   const loginLinks = [
     { path: '/farmer-login', label: 'Farmer' },
     { path: '/lab-login', label: 'Laboratory' },
+    { path: '/logistics-login', label: 'Logistics' },
     { path: '/consumer-login', label: 'Consumer' },
     { path: '/admin-login', label: 'Admin' },
   ]
@@ -39,6 +40,7 @@ export default function Header() {
     farmer: '/farmer-portal',
     lab: '/laboratory-testing',
     consumer: '/consumer-portal',
+    logistics: '/logistics',
   }
   const dashboardPath = userRole ? dashboardPathByRole[userRole] || '/' : '/'
 

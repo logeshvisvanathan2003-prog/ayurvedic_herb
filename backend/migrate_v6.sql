@@ -119,7 +119,9 @@ CREATE TABLE IF NOT EXISTS user_profiles(
     govt_id_type VARCHAR(100),
     govt_id_number VARCHAR(100),
     notes TEXT,
-    updated_at TIMESTAMP DEFAULT NOW()
+    updated_at TIMESTAMP DEFAULT NOW(),
+    courier_name VARCHAR(255),
+    vehicle_number VARCHAR(100)
 );
 
 CREATE TABLE IF NOT EXISTS audit_log(
@@ -185,6 +187,9 @@ ALTER TABLE herb_batches ADD COLUMN IF NOT EXISTS recall_reason TEXT;
 ALTER TABLE herb_batches ADD COLUMN IF NOT EXISTS geofence_flag TEXT;
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS recalled BOOLEAN DEFAULT FALSE;
+
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS courier_name VARCHAR(255);
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS vehicle_number VARCHAR(100);
 
 -- ================================
 -- STEP 3: Data fixups — now safe, since users/columns definitely exist

@@ -4,11 +4,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   QrCode, Search, Download, CheckCircle2, XCircle, Clock,
   MapPin, Leaf, FlaskConical, Package, Loader2, AlertCircle,
-  ShieldCheck, ShieldAlert, Truck, Link2, AlertTriangle
+  ShieldCheck, ShieldAlert, Truck, Link2, AlertTriangle, PackageCheck, Lock
 } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import JourneyMap, { JourneyPoint } from '@/components/JourneyMap'
+import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/api'
 
 interface Product {
@@ -77,6 +78,45 @@ export default function ConsumerPortalPage() {
   const [error,   setError]   = useState('')
   const [chainInfo, setChainInfo] = useState<{ chain_valid: boolean; message: string } | null>(null)
   const [custody, setCustody] = useState<CustodyLeg[]>([])
+
+  const { isAuthenticated, userRole } = useAuthStore()
+  const canDispatch = isAuthenticated && (userRole === 'logistics' || userRole === 'lab' || userRole === 'admin')
+  const [courierDefaults, setCourierDefaults] = useState<{ courier_name: string | null; vehicle_number: string | null }>({ courier_name: null, vehicle_number: null })
+  const [dispatchForm, setDispatchForm] = useState({ to_stage: 'processing', courier_name: '', vehicle_number: '', gps_lat: '', gps_lng: '' })
+  const [dispatching, setDispatching] = useState(false)
+  const [dispatchResult, setDispatchResult] = useState<{ message: string; qr_code?: string; transfer_token?: string; error?: boolean } | null>(null)
+
+  useEffect(() => {
+    if (!canDispatch) return
+    api.get('/logistics/my-profile').then(({ data }) => {
+      setCourierDefaults(data)
+      setDispatchForm(f => ({ ...f, courier_name: data.courier_name || '', vehicle_number: data.vehicle_number || '' }))
+    }).catch(() => {})
+  }, [canDispatch])
+
+  const captureDispatchGps = () => {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      pos => setDispatchForm(f => ({ ...f, gps_lat: pos.coords.latitude.toFixed(6), gps_lng: pos.coords.longitude.toFixed(6) })),
+      () => {}
+    )
+  }
+
+  const handleDispatch = async (e: React.FormEvent) => {
+    e.preventDefault(); setDispatching(true); setDispatchResult(null)
+    try {
+      const { data } = await api.post('/logistics/dispatch', {
+        batch_id: product?.batch_id, from_stage: 'collected', to_stage: dispatchForm.to_stage,
+        courier_name: dispatchForm.courier_name, vehicle_number: dispatchForm.vehicle_number,
+        pickup_gps_lat: dispatchForm.gps_lat || undefined, pickup_gps_lng: dispatchForm.gps_lng || undefined,
+      })
+      setDispatchResult({ message: data.message, qr_code: data.qr_code, transfer_token: data.transfer_token })
+      if (product?.batch_id) loadTrustData(product.batch_id)
+    } catch (err: any) {
+      setDispatchResult({ message: err.response?.data?.error || 'Failed to dispatch shipment.', error: true })
+    }
+    setDispatching(false)
+  }
 
   const loadTrustData = async (batchId: string) => {
     try {
@@ -331,6 +371,82 @@ export default function ConsumerPortalPage() {
                     </div>
                   </Section>
                 </div>
+
+                {/* Dispatch This Shipment — logistics/lab/admin only, and only if not already dispatched */}
+                {canDispatch && custody.length === 0 && !dispatchResult && (
+                  <div className="bg-white border border-secondary/7 mb-4">
+                    <div className="bg-gold px-5 py-3 flex items-center gap-2">
+                      <Truck size={16} className="text-secondary" />
+                      <span className="font-heading text-[0.65rem] uppercase tracking-widest text-secondary">Dispatch This Shipment</span>
+                    </div>
+                    <form onSubmit={handleDispatch} className="p-5 space-y-4">
+                      <div>
+                        <label className="form-label">Batch ID</label>
+                        <div className="form-input bg-secondary/5 text-secondary/50 font-mono flex items-center gap-2 cursor-not-allowed">
+                          <Lock size={12} className="shrink-0" /> {product.batch_id}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="form-label">From Stage</label>
+                          <div className="form-input bg-secondary/5 text-secondary/50 flex items-center gap-2 cursor-not-allowed">
+                            <Lock size={12} className="shrink-0" /> collected
+                          </div>
+                        </div>
+                        <div>
+                          <label className="form-label">To Stage *</label>
+                          <select className="form-input" value={dispatchForm.to_stage}
+                            onChange={e => setDispatchForm(f => ({ ...f, to_stage: e.target.value }))}>
+                            {['processing', 'lab', 'manufacturer', 'distributor', 'retail'].map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="form-label">Courier Name {courierDefaults.courier_name && '(from your profile)'}</label>
+                          <input className="form-input" value={dispatchForm.courier_name}
+                            onChange={e => setDispatchForm(f => ({ ...f, courier_name: e.target.value }))} />
+                        </div>
+                        <div>
+                          <label className="form-label">Vehicle Number {courierDefaults.vehicle_number && '(from your profile)'}</label>
+                          <input className="form-input" value={dispatchForm.vehicle_number}
+                            onChange={e => setDispatchForm(f => ({ ...f, vehicle_number: e.target.value }))} />
+                        </div>
+                      </div>
+                      <div>
+                        <button type="button" onClick={captureDispatchGps}
+                          className={`btn-outline flex items-center gap-2 text-xs ${dispatchForm.gps_lat ? 'border-primary text-primary' : ''}`}>
+                          <MapPin size={13} /> {dispatchForm.gps_lat ? 'Pickup GPS Captured ✓' : 'Capture Pickup GPS'}
+                        </button>
+                        {dispatchForm.gps_lat && <p className="font-body text-xs text-secondary/50 mt-2">📍 {dispatchForm.gps_lat}, {dispatchForm.gps_lng}</p>}
+                      </div>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} type="submit" disabled={dispatching}
+                        className="btn-primary w-full flex items-center justify-center gap-2 py-4">
+                        {dispatching ? <Loader2 size={16} className="animate-spin" /> : <><Truck size={15} /> Generate Dispatch QR</>}
+                      </motion.button>
+                    </form>
+                  </div>
+                )}
+
+                {dispatchResult && (
+                  <div className={`p-5 flex flex-col md:flex-row items-center gap-6 mb-4 ${dispatchResult.error ? 'bg-red-50 border-l-4 border-red-500' : 'bg-white border border-secondary/7'}`}>
+                    {dispatchResult.qr_code && <img src={dispatchResult.qr_code} alt="Dispatch QR" className="w-28 h-28 shrink-0" />}
+                    <div>
+                      <p className={`font-heading text-sm uppercase mb-1 flex items-center gap-2 ${dispatchResult.error ? 'text-red-700' : 'text-primary'}`}>
+                        {dispatchResult.error ? <AlertCircle size={15} /> : <CheckCircle2 size={15} />}
+                        {dispatchResult.error ? 'Dispatch Failed' : 'Shipment Dispatched'}
+                      </p>
+                      <p className="font-body text-xs text-secondary/60">{dispatchResult.message}</p>
+                    </div>
+                  </div>
+                )}
+
+                {canDispatch && custody.length > 0 && (
+                  <div className="flex items-center gap-3 px-5 py-4 bg-secondary/5 border-l-4 border-secondary/30 text-secondary/70 mb-4">
+                    <PackageCheck size={16} className="shrink-0" />
+                    <p className="font-body text-sm">This batch has already been dispatched — a batch can only be shipped once.</p>
+                  </div>
+                )}
 
                 {/* Transport Chain of Custody */}
                 {custody.length > 0 && (
