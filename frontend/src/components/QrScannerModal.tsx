@@ -11,6 +11,23 @@ interface QrScannerModalProps {
 
 const REGION_ID = 'qr-scanner-region'
 
+// Safely stop+clear a scanner instance exactly once, swallowing every
+// possible failure mode (rejected promise OR synchronous throw) — the
+// html5-qrcode library throws synchronously (not via a rejected promise)
+// when stop() is called on a scanner that isn't actively running, which
+// a plain .catch() does not intercept.
+function safeShutdown(scanner: any) {
+  if (!scanner) return
+  try {
+    const result = scanner.stop()
+    if (result && typeof result.then === 'function') {
+      result.then(() => scanner.clear().catch(() => {})).catch(() => {})
+    }
+  } catch {
+    try { scanner.clear().catch(() => {}) } catch {}
+  }
+}
+
 export default function QrScannerModal({ open, onClose, onScan, title }: QrScannerModalProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const scannerRef = useRef<any>(null)
@@ -25,9 +42,7 @@ export default function QrScannerModal({ open, onClose, onScan, title }: QrScann
     setError(''); setStarting(true)
 
     // Small delay lets the modal's entrance animation finish so the
-    // scanner region has settled to its real, measurable size before
-    // html5-qrcode reads its dimensions — starting too early against a
-    // still-animating container is a common cause of a blank/broken scanner.
+    // scanner region has settled to its real, measurable size first.
     const timer = setTimeout(async () => {
       if (cancelled) return
       try {
@@ -41,8 +56,13 @@ export default function QrScannerModal({ open, onClose, onScan, title }: QrScann
           { facingMode: 'environment' },
           { fps: 10, qrbox: { width: 240, height: 240 } },
           (decodedText: string) => {
+            // Claim the ref for ourselves before anything else can touch
+            // it, so the effect cleanup below never attempts a second,
+            // conflicting stop() on the same instance.
+            const s = scannerRef.current
+            scannerRef.current = null
+            safeShutdown(s)
             onScan(decodedText)
-            scanner.stop().catch(() => {})
           },
           () => { /* per-frame decode misses — expected constantly, ignore */ }
         )
@@ -62,11 +82,9 @@ export default function QrScannerModal({ open, onClose, onScan, title }: QrScann
     return () => {
       cancelled = true
       clearTimeout(timer)
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {})
-        scannerRef.current.clear().catch(() => {})
-        scannerRef.current = null
-      }
+      const s = scannerRef.current
+      scannerRef.current = null
+      safeShutdown(s)
     }
   }, [open, manualMode])
 
