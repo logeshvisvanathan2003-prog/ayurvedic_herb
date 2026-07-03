@@ -34,30 +34,13 @@ export default function LogisticsPortalPage() {
   const [batchLocked, setBatchLocked] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scanError, setScanError] = useState('')
-  const [pendingPickups, setPendingPickups] = useState<any[]>([])
-  const [pickupsLoading, setPickupsLoading] = useState(false)
-
-  const loadPickups = async () => {
-    setPickupsLoading(true)
-    try {
-      const { data } = await api.get('/collector/pending-pickups')
-      setPendingPickups(data.pending_pickups || [])
-    } catch {}
-    setPickupsLoading(false)
-  }
 
   useEffect(() => {
     if (!canDispatch) return
     api.get('/logistics/my-profile').then(({ data }) => {
       setDForm(f => ({ ...f, courier_name: data.courier_name || f.courier_name, vehicle_number: data.vehicle_number || f.vehicle_number }))
     }).catch(() => {})
-    loadPickups()
   }, [canDispatch])
-
-  const selectPickup = (batchId: string) => {
-    setDForm(f => ({ ...f, batch_id: batchId, from_stage: 'collected' }))
-    setBatchLocked(true)
-  }
 
   const handleLabQrScan = async (decodedText: string) => {
     setScannerOpen(false); setScanError('')
@@ -92,7 +75,6 @@ export default function LogisticsPortalPage() {
         pickup_gps_lng: dForm.gps_lng || undefined,
       })
       setDResult(data)
-      loadPickups()
     } catch (err: any) {
       setDError(err.response?.data?.error || 'Failed to dispatch shipment.')
     }
@@ -197,33 +179,6 @@ export default function LogisticsPortalPage() {
                   <p className="font-body text-sm">Only Collector accounts can dispatch shipments. <Link to="/collector-login" className="underline font-medium">Sign in as Collector</Link></p>
                 </div>
               ) : (
-                <>
-                  {!batchLocked && (
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <p className="font-heading text-xs uppercase tracking-widest text-secondary/60">Ready For Pickup ({pendingPickups.length})</p>
-                        <button onClick={loadPickups} className="font-body text-[0.65rem] text-secondary/40 hover:text-primary underline">Refresh</button>
-                      </div>
-                      {pickupsLoading ? (
-                        <p className="font-body text-xs text-secondary/40">Loading…</p>
-                      ) : pendingPickups.length === 0 ? (
-                        <p className="font-body text-xs text-secondary/40">No lab-approved batches waiting for pickup right now.</p>
-                      ) : (
-                        <div className="space-y-2 max-h-64 overflow-y-auto">
-                          {pendingPickups.map(p => (
-                            <button key={p.batch_id} type="button" onClick={() => selectPickup(p.batch_id)}
-                              className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-primary/5 hover:bg-primary/10 border border-primary/10 text-left transition-colors">
-                              <div>
-                                <p className="font-heading text-xs uppercase text-secondary">{p.herb_species}</p>
-                                <p className="font-mono text-[0.65rem] text-secondary/50">{p.batch_id} · {p.quantity_kg}kg · from {p.farmer_name || 'farmer'}</p>
-                              </div>
-                              <span className="font-heading text-[0.6rem] uppercase text-primary shrink-0">Select →</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 <form onSubmit={handleDispatch} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2">
                     <button type="button" onClick={() => setScannerOpen(true)}
@@ -280,7 +235,6 @@ export default function LogisticsPortalPage() {
                     </motion.button>
                   </div>
                 </form>
-                </>
               )}
 
               {dError && <p className="font-body text-sm text-red-600 mt-4">{dError}</p>}
