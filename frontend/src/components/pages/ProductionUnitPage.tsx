@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Package, Loader2, CheckCircle2, QrCode, Leaf, Truck, Download, Lock } from 'lucide-react'
+import { Package, Loader2, CheckCircle2, QrCode, Leaf, Truck, Download, Lock, Camera } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import QrScannerModal from '@/components/QrScannerModal'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/api'
 
@@ -17,6 +18,21 @@ interface Delivery {
 export default function ProductionUnitPage() {
   const { isAuthenticated, userRole } = useAuthStore()
   const canUse = isAuthenticated && (userRole === 'production_unit' || userRole === 'admin')
+  const navigate = useNavigate()
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [scanError, setScanError] = useState('')
+
+  const handleDeliveryQrScan = (decodedText: string) => {
+    setScannerOpen(false); setScanError('')
+    try {
+      const url = new URL(decodedText)
+      const token = url.searchParams.get('token')
+      if (!token) throw new Error('no token')
+      navigate(`/logistics-scan?token=${token}`)
+    } catch {
+      setScanError('That doesn\'t look like a valid collector dispatch QR.')
+    }
+  }
 
   const [deliveries, setDeliveries] = useState<Delivery[]>([])
   const [loading, setLoading] = useState(false)
@@ -81,6 +97,12 @@ export default function ProductionUnitPage() {
 
       <section className="py-10 px-4 md:px-12">
         <div className="max-w-[900px] mx-auto">
+          <button onClick={() => setScannerOpen(true)}
+            className="btn-primary w-full flex items-center justify-center gap-2 py-5 mb-3">
+            <Camera size={18} /> Scan Collector's Delivery QR
+          </button>
+          {scanError && <p className="font-body text-xs text-red-600 mb-6 text-center">{scanError}</p>}
+
           {loading && <div className="text-center py-16"><Loader2 size={28} className="mx-auto animate-spin text-secondary/30" /></div>}
 
           {!loading && deliveries.length === 0 && (
@@ -154,6 +176,7 @@ export default function ProductionUnitPage() {
           </div>
         </div>
       </section>
+      <QrScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleDeliveryQrScan} title="Scan Collector's Delivery QR" />
       <Footer />
     </div>
   )

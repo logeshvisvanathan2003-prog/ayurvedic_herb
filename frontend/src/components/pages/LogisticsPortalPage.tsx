@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Truck, PackageCheck, QrCode, MapPin, Loader2, AlertTriangle,
-  CheckCircle2, Search, Link2, Clock, Lock
+  CheckCircle2, Search, Link2, Clock, Lock, Camera
 } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import QrScannerModal from '@/components/QrScannerModal'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/api'
 
@@ -26,10 +27,36 @@ export default function LogisticsPortalPage() {
   const [tab, setTab] = useState<'dispatch' | 'confirm' | 'track'>('dispatch')
 
   /* ---- Dispatch ---- */
-  const [dForm, setDForm] = useState({ batch_id: '', from_stage: '', to_stage: STAGES[0], courier_name: '', vehicle_number: '', gps_lat: '', gps_lng: '' })
+  const [dForm, setDForm] = useState({ batch_id: '', from_stage: 'collected', to_stage: STAGES[0], courier_name: '', vehicle_number: '', gps_lat: '', gps_lng: '' })
   const [dLoading, setDLoading] = useState(false)
   const [dResult, setDResult] = useState<any>(null)
   const [dError, setDError] = useState('')
+  const [batchLocked, setBatchLocked] = useState(false)
+  const [scannerOpen, setScannerOpen] = useState(false)
+  const [scanError, setScanError] = useState('')
+
+  useEffect(() => {
+    if (!canDispatch) return
+    api.get('/logistics/my-profile').then(({ data }) => {
+      setDForm(f => ({ ...f, courier_name: data.courier_name || f.courier_name, vehicle_number: data.vehicle_number || f.vehicle_number }))
+    }).catch(() => {})
+  }, [canDispatch])
+
+  const handleLabQrScan = async (decodedText: string) => {
+    setScannerOpen(false); setScanError('')
+    try {
+      const url = new URL(decodedText)
+      const pid = url.searchParams.get('pid')
+      if (!pid) throw new Error('no pid')
+      const { data } = await api.get(`/products/${pid}/scan`)
+      const batchId = data.product?.batch_id
+      if (!batchId) throw new Error('no batch')
+      setDForm(f => ({ ...f, batch_id: batchId, from_stage: 'collected' }))
+      setBatchLocked(true)
+    } catch {
+      setScanError('That QR doesn\'t look like a valid lab-approved product QR. Try again or type the Batch ID manually below.')
+    }
+  }
 
   const captureGps = (setter: (lat: string, lng: string) => void) => {
     if (!navigator.geolocation) return
@@ -154,14 +181,28 @@ export default function LogisticsPortalPage() {
               ) : (
                 <form onSubmit={handleDispatch} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2">
+                    <button type="button" onClick={() => setScannerOpen(true)}
+                      className="btn-primary w-full flex items-center justify-center gap-2 py-4 mb-2">
+                      <Camera size={16} /> Scan Lab-Approved QR
+                    </button>
+                    {scanError && <p className="font-body text-xs text-red-600 mt-1">{scanError}</p>}
+                  </div>
+                  <div className="md:col-span-2">
                     <label className="form-label">Batch ID *</label>
-                    <input required className="form-input" placeholder="BATCH-20260701-XXXXXXXX"
-                      value={dForm.batch_id} onChange={e => setDForm(f => ({ ...f, batch_id: e.target.value }))} />
+                    {batchLocked ? (
+                      <div className="form-input bg-secondary/5 text-secondary/50 font-mono flex items-center gap-2 cursor-not-allowed">
+                        <Lock size={12} className="shrink-0" /> {dForm.batch_id}
+                      </div>
+                    ) : (
+                      <input required className="form-input" placeholder="BATCH-20260701-XXXXXXXX"
+                        value={dForm.batch_id} onChange={e => setDForm(f => ({ ...f, batch_id: e.target.value }))} />
+                    )}
                   </div>
                   <div>
                     <label className="form-label">From Stage</label>
-                    <input className="form-input" placeholder="e.g. collected" value={dForm.from_stage}
-                      onChange={e => setDForm(f => ({ ...f, from_stage: e.target.value }))} />
+                    <div className="form-input bg-secondary/5 text-secondary/50 flex items-center gap-2 cursor-not-allowed">
+                      <Lock size={12} className="shrink-0" /> collected
+                    </div>
                   </div>
                   <div>
                     <label className="form-label">To Stage *</label>
@@ -322,6 +363,7 @@ export default function LogisticsPortalPage() {
           </div>
         </div>
       </section>
+      <QrScannerModal open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleLabQrScan} title="Scan Lab-Approved QR" />
       <Footer />
     </div>
   )
