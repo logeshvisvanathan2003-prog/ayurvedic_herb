@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Eye, EyeOff, CheckCircle, Upload, FileText, MapPin, Leaf, FlaskConical, User, ArrowRight, Truck } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle, Upload, FileText, MapPin, Leaf, FlaskConical, User, ArrowRight, Truck, Package } from 'lucide-react'
 import { useAuthStore, UserRole } from '@/stores/authStore'
 import api from '@/lib/api'
 
@@ -12,7 +12,8 @@ const ROLE_CONFIG = {
   consumer: { bg: 'bg-gold',      title: 'Consumer Portal',   redirect: '/consumer-portal',    icon: User,         color: 'gold'      },
   lab:      { bg: 'bg-secondary', title: 'Laboratory Portal', redirect: '/laboratory-testing', icon: FlaskConical, color: 'secondary' },
   admin:    { bg: 'bg-secondary', title: 'Admin Portal',      redirect: '/admin', icon: User, color: 'secondary' },
-  logistics:{ bg: 'bg-gold',      title: 'Logistics Portal',  redirect: '/logistics',          icon: Truck,        color: 'gold'      },
+  collector:{ bg: 'bg-gold',      title: 'Collector Portal',  redirect: '/logistics',          icon: Truck,        color: 'gold'      },
+  production_unit: { bg: 'bg-primary', title: 'Production Unit Portal', redirect: '/production-unit', icon: Package, color: 'primary' },
 }
 
 const F = ({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) => (
@@ -40,6 +41,8 @@ export default function AuthPage({ role, type }: AuthPageProps) {
     govt_id_type: '', govt_id_number: '',
     // Logistics
     courier_name: '', vehicle_number: '',
+    // Production Unit
+    unit_name: '',
     notes: '',
   })
   const [files, setFiles] = useState<Record<string, File | null>>({
@@ -173,11 +176,24 @@ export default function AuthPage({ role, type }: AuthPageProps) {
                   <span className="font-body text-sm text-white/85">{f}</span>
                 </div>
               ))}
-              {role === 'logistics' && [
-                'Dispatch shipments with a single-use QR',
+              {role === 'collector' && [
+                'Scan lab-approved QR to auto-fill dispatch',
                 'Auto-filled courier name & vehicle number',
-                'Confirm deliveries with mandatory GPS proof',
+                'Single-use QR — cloned copies get rejected',
                 'Every handoff recorded on Hyperledger Fabric',
+              ].map(f => (
+                <div key={f} className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                    <CheckCircle size={11} className="text-white" />
+                  </div>
+                  <span className="font-body text-sm text-white/85">{f}</span>
+                </div>
+              ))}
+              {role === 'production_unit' && [
+                'Scan collector\'s QR to confirm delivery',
+                'View farmer, lab, and transport history',
+                'Mandatory GPS proof of receipt',
+                'Generate the final consumer product QR',
               ].map(f => (
                 <div key={f} className="flex items-center gap-3">
                   <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
@@ -350,8 +366,8 @@ export default function AuthPage({ role, type }: AuthPageProps) {
                   </div>
                 )}
 
-                {/* ── LOGISTICS fields ── */}
-                {role === 'logistics' && (
+                {/* ── COLLECTOR fields ── */}
+                {role === 'collector' && (
                   <div className="border border-yellow-200 bg-yellow-50/50 p-5 flex flex-col gap-4">
                     <p className="font-heading text-xs uppercase tracking-widest text-yellow-700 flex items-center gap-2">
                       <Truck size={12} /> Courier / Transporter Details
@@ -369,6 +385,22 @@ export default function AuthPage({ role, type }: AuthPageProps) {
                           value={form.vehicle_number} onChange={e => set('vehicle_number', e.target.value)} required />
                       </F>
                     </div>
+                  </div>
+                )}
+
+                {/* ── PRODUCTION UNIT fields ── */}
+                {role === 'production_unit' && (
+                  <div className="border border-primary/20 bg-primary/5 p-5 flex flex-col gap-4">
+                    <p className="font-heading text-xs uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Package size={12} /> Manufacturing / Production Unit Details
+                    </p>
+                    <p className="font-body text-xs text-secondary/50">
+                      Once a collector's delivery is confirmed here, you'll be able to generate the final consumer-facing product QR for that batch.
+                    </p>
+                    <F label="Production Unit / Company Name *">
+                      <input className="form-input" type="text" placeholder="e.g. Cognentrz Herbal Manufacturing"
+                        value={form.unit_name} onChange={e => set('unit_name', e.target.value)} required />
+                    </F>
                   </div>
                 )}
 

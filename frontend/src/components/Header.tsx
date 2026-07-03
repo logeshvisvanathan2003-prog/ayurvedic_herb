@@ -30,7 +30,8 @@ export default function Header() {
   const loginLinks = [
     { path: '/farmer-login', label: 'Farmer' },
     { path: '/lab-login', label: 'Laboratory' },
-    { path: '/logistics-login', label: 'Logistics' },
+    { path: '/collector-login', label: 'Collector' },
+    { path: '/production-login', label: 'Production Unit' },
     { path: '/consumer-login', label: 'Consumer' },
     { path: '/admin-login', label: 'Admin' },
   ]
@@ -40,7 +41,8 @@ export default function Header() {
     farmer: '/farmer-portal',
     lab: '/laboratory-testing',
     consumer: '/consumer-portal',
-    logistics: '/logistics',
+    collector: '/logistics',
+    production_unit: '/production-unit',
   }
   const dashboardPath = userRole ? dashboardPathByRole[userRole] || '/' : '/'
 
