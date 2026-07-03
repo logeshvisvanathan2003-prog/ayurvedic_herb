@@ -30,7 +30,7 @@ interface Product { product_id: string; product_name: string }
 export default function LogisticsScanPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
-  const { isAuthenticated, userRole } = useAuthStore()
+  const { isAuthenticated, userRole, userName } = useAuthStore()
   const canConfirm = isAuthenticated && (userRole === 'admin' || userRole === 'lab' || userRole === 'farmer')
 
   const [transfer, setTransfer] = useState<Transfer | null>(null)
@@ -40,6 +40,7 @@ export default function LogisticsScanPage() {
   const [error, setError] = useState('')
 
   const [receiverName, setReceiverName] = useState('')
+  useEffect(() => { if (userName && !receiverName) setReceiverName(userName) }, [userName])
   const [gps, setGps] = useState<{ lat: string; lng: string }>({ lat: '', lng: '' })
   const [confirming, setConfirming] = useState(false)
   const [confirmResult, setConfirmResult] = useState<{ message: string; anomaly: boolean } | null>(null)
@@ -65,8 +66,13 @@ export default function LogisticsScanPage() {
     )
   }
 
+  const [gpsError, setGpsError] = useState('')
+
   const handleConfirm = async (e: React.FormEvent) => {
-    e.preventDefault(); setConfirming(true)
+    e.preventDefault()
+    if (!gps.lat || !gps.lng) { setGpsError('GPS location is required — tap "Capture Delivery GPS" before confirming.'); return }
+    setGpsError('')
+    setConfirming(true)
     try {
       const { data } = await api.post('/logistics/confirm-delivery', {
         transfer_token: token, receiver_name: receiverName,
@@ -251,15 +257,25 @@ export default function LogisticsScanPage() {
                   ) : (
                     <form onSubmit={handleConfirm} className="space-y-4">
                       <div>
-                        <label className="form-label">Receiver Name</label>
-                        <input className="form-input" value={receiverName} onChange={e => setReceiverName(e.target.value)} />
+                        <label className="form-label">Transfer Token (from scanned QR)</label>
+                        <div className="form-input bg-secondary/5 text-secondary/50 font-mono flex items-center gap-2 cursor-not-allowed select-all">
+                          <Lock size={12} className="shrink-0" /> {token}
+                        </div>
                       </div>
-                      <button type="button" onClick={captureGps} className="btn-outline flex items-center gap-2 text-xs">
-                        <MapPin size={13} /> Capture Delivery GPS
-                      </button>
-                      {gps.lat && <p className="font-body text-xs text-secondary/50">📍 {gps.lat}, {gps.lng}</p>}
-                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} type="submit" disabled={confirming}
-                        className="btn-primary w-full flex items-center justify-center gap-2 py-4">
+                      <div>
+                        <label className="form-label">Receiver Name</label>
+                        <input className="form-input" value={receiverName} onChange={e => setReceiverName(e.target.value)} placeholder={userName ? '' : 'Enter your name'} />
+                      </div>
+                      <div>
+                        <button type="button" onClick={captureGps}
+                          className={`btn-outline flex items-center gap-2 text-xs ${gps.lat ? 'border-primary text-primary' : ''}`}>
+                          <MapPin size={13} /> {gps.lat ? 'GPS Captured ✓' : 'Capture Delivery GPS (required)'}
+                        </button>
+                        {gps.lat && <p className="font-body text-xs text-secondary/50 mt-2">📍 {gps.lat}, {gps.lng}</p>}
+                        {gpsError && <p className="font-body text-xs text-red-600 mt-2">{gpsError}</p>}
+                      </div>
+                      <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} type="submit" disabled={confirming || !gps.lat}
+                        className="btn-primary w-full flex items-center justify-center gap-2 py-4 disabled:opacity-40 disabled:cursor-not-allowed">
                         {confirming ? <Loader2 size={16} className="animate-spin" /> : <><PackageCheck size={15} /> Confirm Receipt</>}
                       </motion.button>
                     </form>
