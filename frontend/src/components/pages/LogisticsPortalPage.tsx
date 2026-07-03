@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Truck, PackageCheck, QrCode, MapPin, Loader2, AlertTriangle,
@@ -19,7 +20,9 @@ const STAGES = ['processing', 'lab', 'manufacturer', 'distributor', 'retail']
 
 export default function LogisticsPortalPage() {
   const { isAuthenticated, userRole } = useAuthStore()
-  const canUse = isAuthenticated && (userRole === 'admin' || userRole === 'lab' || userRole === 'farmer')
+  const canDispatch = isAuthenticated && (userRole === 'admin' || userRole === 'collector')
+  const canConfirm  = isAuthenticated && (userRole === 'admin' || userRole === 'production_unit')
+  const canUse = canDispatch || canConfirm
   const [tab, setTab] = useState<'dispatch' | 'confirm' | 'track'>('dispatch')
 
   /* ---- Dispatch ---- */
@@ -117,7 +120,7 @@ export default function LogisticsPortalPage() {
           {!canUse && (
             <div className="flex items-start gap-3 px-5 py-4 bg-secondary/5 border-l-4 border-secondary/30 text-secondary/70 mb-8">
               <Lock size={16} className="mt-0.5 shrink-0" />
-              <p className="font-body text-sm">Sign in as a Farmer, Laboratory/Processor, or Admin to dispatch shipments or confirm deliveries. Anyone can still track a batch's transport trail below.</p>
+              <p className="font-body text-sm">Sign in as a Collector to dispatch shipments, or a Production Unit to confirm deliveries. Anyone can still track a batch's transport trail below.</p>
             </div>
           )}
 
@@ -143,7 +146,12 @@ export default function LogisticsPortalPage() {
           {/* Dispatch tab */}
           {tab === 'dispatch' && (
             <div className="card p-7">
-              {!canUse ? null : (
+              {!canDispatch ? (
+                <div className="flex items-start gap-3 px-4 py-3 bg-secondary/5 border-l-4 border-secondary/30 text-secondary/70">
+                  <Lock size={15} className="mt-0.5 shrink-0" />
+                  <p className="font-body text-sm">Only Collector accounts can dispatch shipments. <Link to="/collector-login" className="underline font-medium">Sign in as Collector</Link></p>
+                </div>
+              ) : (
                 <form onSubmit={handleDispatch} className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="md:col-span-2">
                     <label className="form-label">Batch ID *</label>
@@ -212,7 +220,12 @@ export default function LogisticsPortalPage() {
           {/* Confirm delivery tab */}
           {tab === 'confirm' && (
             <div className="card p-7">
-              {!canUse ? null : (
+              {!canConfirm ? (
+                <div className="flex items-start gap-3 px-4 py-3 bg-secondary/5 border-l-4 border-secondary/30 text-secondary/70">
+                  <Lock size={15} className="mt-0.5 shrink-0" />
+                  <p className="font-body text-sm">Only Production Unit accounts can confirm deliveries. <Link to="/production-login" className="underline font-medium">Sign in as Production Unit</Link></p>
+                </div>
+              ) : (
                 <form onSubmit={handleConfirm} className="grid grid-cols-1 gap-5">
                   <div>
                     <label className="form-label">Transfer Token (scan or paste from courier's QR) *</label>

@@ -80,7 +80,7 @@ export default function ConsumerPortalPage() {
   const [custody, setCustody] = useState<CustodyLeg[]>([])
 
   const { isAuthenticated, userRole } = useAuthStore()
-  const canDispatch = isAuthenticated && (userRole === 'logistics' || userRole === 'lab' || userRole === 'admin')
+  const canDispatch = isAuthenticated && (userRole === 'collector' || userRole === 'admin')
   const [courierDefaults, setCourierDefaults] = useState<{ courier_name: string | null; vehicle_number: string | null }>({ courier_name: null, vehicle_number: null })
   const [dispatchForm, setDispatchForm] = useState({ to_stage: 'processing', courier_name: '', vehicle_number: '', gps_lat: '', gps_lng: '' })
   const [dispatching, setDispatching] = useState(false)

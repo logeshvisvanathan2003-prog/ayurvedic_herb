@@ -13,6 +13,7 @@ import AuthPage              from '@/components/pages/AuthPage'
 import ApplicationStatusPage from '@/components/pages/ApplicationStatusPage'
 import AdminDashboardPage    from '@/components/pages/AdminDashboardPage'
 import AdminRegisterPage     from '@/components/pages/AdminRegisterPage'
+import ProductionUnitPage    from '@/components/pages/ProductionUnitPage'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -60,9 +61,14 @@ export default function App() {
         <Route path="/lab-login"    element={<AuthPage role="lab"      type="login" />} />
         <Route path="/lab-register" element={<AuthPage role="lab"      type="register" />} />
 
-        {/* ── Logistics — courier/transporter accounts, admin approval ── */}
-        <Route path="/logistics-login"    element={<AuthPage role="logistics" type="login" />} />
-        <Route path="/logistics-register" element={<AuthPage role="logistics" type="register" />} />
+        {/* ── Collector — picks up from farm/lab, dispatches shipments ── */}
+        <Route path="/collector-login"    element={<AuthPage role="collector" type="login" />} />
+        <Route path="/collector-register" element={<AuthPage role="collector" type="register" />} />
+
+        {/* ── Production Unit — confirms delivery, generates final product QR ── */}
+        <Route path="/production-login"    element={<AuthPage role="production_unit" type="login" />} />
+        <Route path="/production-register" element={<AuthPage role="production_unit" type="register" />} />
+        <Route path="/production-unit"     element={<ProductionUnitPage />} />
 
         {/* ── Consumer — register requires govt ID + admin approval ── */}
         <Route path="/consumer-login"    element={<AuthPage role="consumer" type="login" />} />

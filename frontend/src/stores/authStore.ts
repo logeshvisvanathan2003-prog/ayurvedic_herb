@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type UserRole = 'farmer' | 'consumer' | 'lab' | 'admin' | 'logistics' | null
+export type UserRole = 'farmer' | 'consumer' | 'lab' | 'admin' | 'collector' | 'production_unit' | null
 
 interface AuthState {
   userRole: UserRole

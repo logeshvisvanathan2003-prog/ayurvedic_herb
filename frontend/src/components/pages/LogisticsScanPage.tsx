@@ -31,7 +31,7 @@ export default function LogisticsScanPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
   const { isAuthenticated, userRole, userName } = useAuthStore()
-  const canConfirm = isAuthenticated && (userRole === 'admin' || userRole === 'lab' || userRole === 'farmer')
+  const canConfirm = isAuthenticated && (userRole === 'admin' || userRole === 'production_unit')
 
   const [transfer, setTransfer] = useState<Transfer | null>(null)
   const [labTest, setLabTest] = useState<LabTest | null>(null)
@@ -250,8 +250,8 @@ export default function LogisticsScanPage() {
                     <div className="flex items-start gap-3 px-4 py-3 bg-secondary/5 border-l-4 border-secondary/30 text-secondary/70">
                       <Lock size={15} className="mt-0.5 shrink-0" />
                       <p className="font-body text-sm">
-                        Sign in as the receiving Lab, Manufacturer contact, or Admin to confirm this delivery.{' '}
-                        <Link to="/lab-login" className="underline font-medium">Sign in</Link>
+                        Sign in as the receiving Production Unit or Admin to confirm this delivery.{' '}
+                        <Link to="/production-login" className="underline font-medium">Sign in</Link>
                       </p>
                     </div>
                   ) : (

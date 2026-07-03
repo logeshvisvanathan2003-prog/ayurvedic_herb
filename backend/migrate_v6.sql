@@ -121,7 +121,8 @@ CREATE TABLE IF NOT EXISTS user_profiles(
     notes TEXT,
     updated_at TIMESTAMP DEFAULT NOW(),
     courier_name VARCHAR(255),
-    vehicle_number VARCHAR(100)
+    vehicle_number VARCHAR(100),
+    unit_name VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS audit_log(
@@ -190,6 +191,7 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS recalled BOOLEAN DEFAULT FALSE;
 
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS courier_name VARCHAR(255);
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS vehicle_number VARCHAR(100);
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS unit_name VARCHAR(255);
 
 -- ================================
 -- STEP 3: Data fixups — now safe, since users/columns definitely exist

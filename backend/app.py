@@ -327,8 +327,8 @@ def register():
     role = data['role']
     if role == 'admin':
         return jsonify({'error':'Admin accounts use the /admin-register page with a secret key'}),400
-    if role not in ('farmer','consumer','lab','logistics'):
-        return jsonify({'error':'Role must be: farmer, consumer, lab, or logistics'}),400
+    if role not in ('farmer','consumer','lab','collector','production_unit'):
+        return jsonify({'error':'Role must be: farmer, consumer, lab, collector, or production_unit'}),400
     if len(data['password'])<6: return jsonify({'error':'Password min 6 chars'}),400
 
     # Document validation
@@ -341,9 +341,11 @@ def register():
     elif role=='consumer':
         if not request.files.get('govt_id'): return jsonify({'error':'Government ID document is required'}),400
         if not data.get('govt_id_type') or not data.get('govt_id_number'): return jsonify({'error':'Govt ID type and number are required'}),400
-    elif role=='logistics':
+    elif role=='collector':
         if not data.get('courier_name'): return jsonify({'error':'Courier/company name is required'}),400
         if not data.get('vehicle_number'): return jsonify({'error':'Default vehicle number is required'}),400
+    elif role=='production_unit':
+        if not data.get('unit_name'): return jsonify({'error':'Production unit / manufacturer name is required'}),400
 
     pw = bcrypt.hashpw(data['password'].encode(),bcrypt.gensalt()).decode()
 
@@ -380,9 +382,9 @@ def register():
             land_district,land_state,farming_type,
             lab_name,lab_licence_no,lab_accreditation,
             lab_address,govt_id_type,govt_id_number,notes,
-            courier_name,vehicle_number
+            courier_name,vehicle_number,unit_name
         )
-        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """,(
             profile_id,
             uid,
@@ -399,7 +401,8 @@ def register():
             data.get('govt_id_number'),
             data.get('notes'),
             data.get('courier_name'),
-            data.get('vehicle_number')
+            data.get('vehicle_number'),
+            data.get('unit_name')
         ))
 
         # DOCUMENTS (explicit id to avoid NULL id on older DBs without DEFAULT)
@@ -563,6 +566,29 @@ def login():
     except Exception as e: return jsonify({'error':str(e)}),500
 
 
+@app.route('/api/production-unit/my-deliveries', methods=['GET'])
+@token_required
+@role_required('production_unit','admin')
+def my_deliveries(cu):
+    """Every delivery this production unit has confirmed receipt of, plus
+    whether a final consumer product QR has been generated for it yet."""
+    try:
+        conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""SELECT ct.batch_id,ct.delivered_at,ct.receiver_name,ct.courier_name,ct.vehicle_number,
+                       hb.herb_species,hb.quantity_kg,u.full_name AS farmer_name,
+                       p.product_id,p.product_name
+                       FROM custody_transfers ct
+                       LEFT JOIN herb_batches hb ON ct.batch_id=hb.batch_id
+                       LEFT JOIN users u ON hb.farmer_id=u.id
+                       LEFT JOIN products p ON p.batch_id=ct.batch_id
+                       WHERE ct.received_by=%s AND ct.status='delivered'
+                       ORDER BY ct.delivered_at DESC""",(cu['user_id'],))
+        rows=[serialize(dict(r)) for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return jsonify({'deliveries':rows})
+    except Exception as e: return jsonify({'error':str(e)}),500
+
+
 @app.route('/api/logistics/my-profile', methods=['GET'])
 @token_required
 def my_logistics_profile(cu):
@@ -571,9 +597,9 @@ def my_logistics_profile(cu):
     prefill automatically instead of retyping every time."""
     try:
         conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("SELECT courier_name,vehicle_number FROM user_profiles WHERE user_id=%s",(cu['user_id'],))
+        cur.execute("SELECT courier_name,vehicle_number,unit_name FROM user_profiles WHERE user_id=%s",(cu['user_id'],))
         profile=cur.fetchone(); cur.close(); conn.close()
-        return jsonify(serialize(dict(profile)) if profile else {'courier_name':None,'vehicle_number':None})
+        return jsonify(serialize(dict(profile)) if profile else {'courier_name':None,'vehicle_number':None,'unit_name':None})
     except Exception as e: return jsonify({'error':str(e)}),500
 
 
@@ -931,7 +957,7 @@ def get_lab_test(cu, bid):
 
 @app.route('/api/products/generate-qr', methods=['POST'])
 @token_required
-@role_required('lab','admin')
+@role_required('production_unit','lab','admin')
 def gen_qr(cu):
     data=request.get_json() or {}; bid=data.get('batch_id','').strip()
     if not bid: return jsonify({'error':'batch_id required'}),400
@@ -1048,7 +1074,7 @@ def logistics_scan(token):
 
 @app.route('/api/logistics/dispatch', methods=['POST'])
 @token_required
-@role_required('farmer','lab','admin','logistics')
+@role_required('collector','admin')
 def dispatch_shipment(cu):
     data=request.get_json() or {}
     bid=(data.get('batch_id') or '').strip()
@@ -1093,7 +1119,7 @@ def dispatch_shipment(cu):
 
 @app.route('/api/logistics/confirm-delivery', methods=['POST'])
 @token_required
-@role_required('farmer','lab','admin','logistics')
+@role_required('production_unit','admin')
 def confirm_delivery(cu):
     data=request.get_json() or {}
     token=(data.get('transfer_token') or '').strip()
