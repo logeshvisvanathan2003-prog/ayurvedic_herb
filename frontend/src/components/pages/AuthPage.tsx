@@ -16,6 +16,14 @@ const ROLE_CONFIG = {
   production_unit: { bg: 'bg-primary', title: 'Production Unit Portal', redirect: '/production-unit', icon: Package, color: 'primary' },
 }
 
+// Most roles' URL prefix matches their internal role name exactly
+// (farmer -> /farmer-login), but 'production_unit' uses a shortened
+// URL prefix ('production') for readability — this map bridges that gap
+// wherever a login/register URL needs to be built dynamically from `role`.
+const ROLE_URL_PREFIX: Record<string, string> = {
+  production_unit: 'production',
+}
+
 const F = ({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) => (
   <div>
     <label className="form-label">{label}</label>
@@ -219,8 +227,8 @@ export default function AuthPage({ role, type }: AuthPageProps) {
           </h2>
           <p className="font-body text-sm text-secondary/50 mb-7">
             {isRegister
-              ? `Register as ${role} — documents required for verification`
-              : `Sign in to your ${role} account`}
+              ? `Register as ${role.replace('_', ' ')} — documents required for verification`
+              : `Sign in to your ${role.replace('_', ' ')} account`}
           </p>
 
           {error && (
@@ -428,10 +436,10 @@ export default function AuthPage({ role, type }: AuthPageProps) {
           <p className="font-body text-sm text-secondary/50 text-center mt-5">
             {isRegister
               ? <>Already have an account?{' '}
-                  <Link to={`/${role}-login`} className="text-primary hover:underline font-medium">Sign in</Link>
+                  <Link to={`/${ROLE_URL_PREFIX[role] || role}-login`} className="text-primary hover:underline font-medium">Sign in</Link>
                 </>
               : <>Don't have an account?{' '}
-                  <Link to={`/${role}-register`} className="text-primary hover:underline font-medium">Apply now</Link>
+                  <Link to={`/${ROLE_URL_PREFIX[role] || role}-register`} className="text-primary hover:underline font-medium">Apply now</Link>
                 </>}
           </p>
           {!isRegister && (
