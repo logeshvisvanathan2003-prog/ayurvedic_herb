@@ -804,10 +804,10 @@ def create_processing(cu):
         if batch['status']=='rejected': cur.close(); conn.close(); return jsonify({'error':'Cannot process rejected batch'}),400
         cur.execute("SELECT id FROM processing_records WHERE batch_id=%s",(bid,))
         if cur.fetchone():
-            cur.execute("UPDATE processing_records SET drying_method=%s,drying_duration_hours=%s,drying_temperature=%s,grinding_status=%s,grinding_particle_size=%s,storage_temperature=%s,storage_humidity=%s,storage_location=%s,chain_of_custody=%s,notes=%s,processed_at=NOW() WHERE batch_id=%s RETURNING *",
+            cur.execute("UPDATE processing_records SET drying_method=%s,drying_duration_hours=%s,drying_temperature=%s,grinding_status=%s,grinding_particle_sz=%s,storage_temperature=%s,storage_humidity=%s,storage_location=%s,chain_of_custody=%s,notes=%s,processed_at=NOW() WHERE batch_id=%s RETURNING *",
                         (data.get('drying_method'),data.get('drying_duration_hours') or None,data.get('drying_temperature') or None,data.get('grinding_status',False),data.get('grinding_particle_size'),data.get('storage_temperature') or None,data.get('storage_humidity') or None,data.get('storage_location'),data.get('chain_of_custody'),data.get('notes'),bid))
         else:
-            cur.execute("INSERT INTO processing_records(batch_id,processor_id,drying_method,drying_duration_hours,drying_temperature,grinding_status,grinding_particle_size,storage_temperature,storage_humidity,storage_location,chain_of_custody,notes) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *",
+            cur.execute("INSERT INTO processing_records(batch_id,processor_id,drying_method,drying_duration_hours,drying_temperature,grinding_status,grinding_particle_sz,storage_temperature,storage_humidity,storage_location,chain_of_custody,notes) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *",
                         (bid,cu['user_id'],data.get('drying_method'),data.get('drying_duration_hours') or None,data.get('drying_temperature') or None,data.get('grinding_status',False),data.get('grinding_particle_size'),data.get('storage_temperature') or None,data.get('storage_humidity') or None,data.get('storage_location'),data.get('chain_of_custody'),data.get('notes')))
         rec=serialize(dict(cur.fetchone()))
         cur.execute("UPDATE herb_batches SET status='processing' WHERE batch_id=%s",(bid,))
@@ -953,7 +953,7 @@ def scan_product(pid):
         cur.execute("""SELECT p.product_id,p.product_name,p.description,p.manufacturing_date,p.expiry_date,p.qr_code_data,p.created_at,p.recalled,
             hb.batch_id,hb.herb_species,hb.quantity_kg,hb.moisture_level,hb.harvest_date,hb.farming_practices,hb.gps_lat,hb.gps_lng,hb.location_name,hb.image_url AS herb_image,hb.recalled AS batch_recalled,hb.recall_reason,hb.geofence_flag,
             u.full_name AS farmer_name,u.address AS farm_address,
-            pr.drying_method,pr.drying_duration_hours,pr.grinding_status,pr.grinding_particle_size,pr.storage_temperature,pr.storage_humidity,pr.storage_location,pr.chain_of_custody,
+            pr.drying_method,pr.drying_duration_hours,pr.grinding_status,pr.grinding_particle_sz AS grinding_particle_size,pr.storage_temperature,pr.storage_humidity,pr.storage_location,pr.chain_of_custody,
             lt.moisture_content,lt.pesticide_residue_result,lt.pesticide_report_url,lt.dna_auth_result,lt.dna_certificate_url,lt.heavy_metal_result,lt.microbial_count,lt.overall_status AS lab_status,lt.tested_by,lt.tested_at,lt.moisture_report_url
             FROM products p JOIN herb_batches hb ON p.batch_id=hb.batch_id
             LEFT JOIN users u ON hb.farmer_id=u.id
