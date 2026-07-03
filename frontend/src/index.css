@@ -1,0 +1,306 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Space+Grotesk:wght@300;400;500;600&family=Syne:wght@400;600;700;800&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    cursor: none !important;
+  }
+
+  /* Restore cursor for all form inputs/textareas/selects */
+  input,
+  textarea,
+  select,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="file"],
+  input[type="search"] {
+    cursor: text !important;
+  }
+
+  input[type="file"] {
+    cursor: pointer !important;
+  }
+
+  select {
+    cursor: pointer !important;
+  }
+
+  input[type="radio"],
+  input[type="checkbox"] {
+    cursor: pointer !important;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background font-body text-secondary antialiased overflow-x-hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-cream;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary rounded-full;
+  }
+
+  ::selection {
+    @apply bg-primary text-white;
+  }
+}
+
+@layer components {
+  /* ── CURSOR ── */
+  .cursor-dot {
+    @apply fixed w-2 h-2 bg-primary rounded-full pointer-events-none z-[99999];
+    transform: translate(-50%, -50%);
+    transition: transform 0.08s ease;
+  }
+
+  .cursor-ring {
+    @apply fixed w-9 h-9 border-2 border-primary rounded-full pointer-events-none z-[99998];
+    transform: translate(-50%, -50%);
+    transition: width 0.25s ease, height 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  }
+
+  .cursor-ring.hovered {
+    @apply w-14 h-14 bg-[rgba(74,124,89,0.10)];
+  }
+
+  /* ── MARQUEE ── */
+  .marquee-track {
+    @apply flex overflow-hidden bg-secondary border-y border-[rgba(255,255,255,0.10)] py-3;
+  }
+
+  .marquee-inner {
+    @apply flex whitespace-nowrap;
+    animation: marquee 28s linear infinite;
+  }
+
+  .marquee-inner.reverse {
+    animation: marquee-reverse 28s linear infinite;
+  }
+
+  .marquee-inner span {
+    @apply px-10 font-heading text-lg uppercase tracking-widest text-[rgba(255,255,255,0.70)] flex items-center gap-3;
+  }
+
+  .marquee-inner span::after {
+    content: '✦';
+    @apply text-gold text-xs;
+  }
+
+  /* ── SECTION ── */
+  .section-tag {
+    @apply inline-block px-3 py-1 border border-[rgba(26,26,14,0.20)] rounded-full font-heading text-[0.6rem] uppercase tracking-[0.18em] text-[rgba(26,26,14,0.50)] mb-3;
+  }
+
+  .section-title {
+    @apply font-heading font-extrabold text-secondary uppercase leading-[0.88] tracking-tight;
+    font-size: clamp(2rem, 5vw, 4.5rem);
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    @apply inline-flex items-center gap-2 px-6 py-3 font-heading text-xs uppercase tracking-widest font-semibold transition-all duration-300 border-none outline-none relative overflow-hidden;
+  }
+
+  .btn::before {
+    content: '';
+    @apply absolute inset-0 bg-[rgba(255,255,255,0.15)] -translate-x-full transition-transform duration-300;
+  }
+
+  .btn:hover::before {
+    @apply translate-x-0;
+  }
+
+  .btn-primary {
+    @apply btn bg-primary text-white hover:bg-primary-dark hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(74,124,89,0.35)];
+  }
+
+  .btn-outline {
+    @apply btn bg-transparent border-2 border-[rgba(26,26,14,0.20)] text-secondary hover:border-primary hover:text-primary;
+  }
+
+  .btn-dark {
+    @apply btn bg-secondary text-white hover:bg-[rgba(26,26,14,0.9)] hover:-translate-y-0.5;
+  }
+
+  .btn-gold {
+    @apply btn bg-gold text-secondary hover:bg-gold-dark hover:-translate-y-0.5;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent text-[rgba(26,26,14,0.60)] hover:text-primary px-3 py-2;
+  }
+
+  /* ── FORM ── */
+  .form-label {
+    @apply block font-heading text-[0.68rem] uppercase tracking-widest text-secondary font-semibold mb-1.5;
+  }
+
+  .form-input {
+    @apply w-full px-4 py-3 border border-[rgba(26,26,14,0.15)] bg-white font-body text-sm text-secondary outline-none transition-all duration-200 rounded-sm;
+  }
+
+  .form-input:focus {
+    @apply border-primary shadow-[0_0_0_3px_rgba(74,124,89,0.12)];
+  }
+
+  .form-input::placeholder {
+    @apply text-[rgba(26,26,14,0.30)];
+  }
+
+  .form-error {
+    @apply px-4 py-3 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm mb-4;
+  }
+
+  .form-success {
+    @apply px-4 py-3 bg-[rgba(74,124,89,0.10)] border-l-4 border-primary text-primary text-sm mb-4;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    @apply bg-white border border-[rgba(26,26,14,0.07)] transition-all duration-300;
+  }
+
+  .card:hover {
+    @apply border-[rgba(74,124,89,0.40)] shadow-[0_20px_60px_rgba(74,124,89,0.1)] -translate-y-1;
+  }
+
+  /* ── BADGE ── */
+  .badge {
+    @apply inline-flex items-center px-3 py-0.5 rounded-full font-heading text-[0.58rem] uppercase tracking-widest;
+  }
+
+  .badge-green  { @apply bg-[rgba(74,124,89,0.12)] text-primary; }
+  .badge-gold   { @apply bg-[rgba(185,176,74,0.20)] text-yellow-700; }
+  .badge-red    { @apply bg-red-100 text-red-600; }
+  .badge-gray   { @apply bg-[rgba(26,26,14,0.08)] text-[rgba(26,26,14,0.60)]; }
+
+  /* ── NAV LINK ── */
+  .nav-link {
+    @apply font-heading text-[0.68rem] uppercase tracking-widest text-[rgba(26,26,14,0.60)] hover:text-primary transition-colors duration-200 relative pb-0.5;
+  }
+
+  .nav-link::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-px bg-primary transition-all duration-300;
+  }
+
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    @apply w-full;
+  }
+
+  .nav-link.active {
+    @apply text-primary;
+  }
+
+  /* ── PORTAL CARD ── */
+  .portal-card {
+    @apply relative min-h-[340px] p-8 flex flex-col justify-between overflow-hidden transition-transform duration-500 hover:scale-[1.015] no-underline;
+  }
+
+  .portal-card .arrow-btn {
+    @apply w-11 h-11 rounded-full border flex items-center justify-center transition-all duration-300;
+    border-color: color-mix(in srgb, currentColor 30%, transparent);
+  }
+
+  .portal-card:hover .arrow-btn {
+    @apply bg-[rgba(255,255,255,0.15)] rotate-45;
+  }
+
+  /* ── OVERVIEW CARD ── */
+  .overview-card {
+    @apply bg-white border border-[rgba(26,26,14,0.07)] p-8 relative overflow-hidden transition-all duration-300 cursor-default;
+  }
+
+  .overview-card::before {
+    content: '';
+    @apply absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-500;
+  }
+
+  .overview-card:hover {
+    @apply border-[rgba(74,124,89,0.40)] shadow-[0_20px_60px_rgba(74,124,89,0.1)] -translate-y-1;
+  }
+
+  .overview-card:hover::before {
+    @apply w-full;
+  }
+
+  /* ── TABLE ── */
+  .data-table {
+    @apply w-full border-collapse;
+  }
+
+  .data-table th {
+    @apply font-heading text-[0.62rem] uppercase tracking-widest px-5 py-4 text-left border-b-2 border-[rgba(26,26,14,0.08)] text-[rgba(26,26,14,0.50)];
+  }
+
+  .data-table td {
+    @apply px-5 py-4 text-sm border-b border-[rgba(26,26,14,0.05)] transition-colors;
+  }
+
+  .data-table tr:hover td {
+    @apply bg-[rgba(74,124,89,0.03)];
+  }
+
+  /* ── TIMELINE ── */
+  .timeline {
+    @apply relative pl-8;
+  }
+
+  .timeline::before {
+    content: '';
+    @apply absolute left-0 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary to-gold;
+  }
+
+  .timeline-dot {
+    @apply absolute -left-10 w-3.5 h-3.5 rounded-full border-3 border-cream shadow-[0_0_0_2px_theme(colors.primary.DEFAULT)];
+    background: theme('colors.primary.DEFAULT');
+  }
+}
+
+/* Hero shape animation */
+@keyframes grow-up {
+  from { height: 0; opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.hero-shape {
+  animation: grow-up 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+/* Grain texture overlay */
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Animate on scroll utility */
+.anim-hidden {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.anim-visible {
+  opacity: 1;
+  transform: translateY(0);
+}

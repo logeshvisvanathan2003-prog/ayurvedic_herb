@@ -1,0 +1,30 @@
+# Used by `cryptogen` to generate MSP material (certs/keys) for a minimal
+# real Fabric network: one orderer org, one peer org. This is genuinely
+# used by the orderer/peer binaries below — not a simulation.
+#
+# Scale-up note: to model the full AYUSH consortium (farmer cooperatives,
+# testing labs, processors, the regulator) later, duplicate the `Org1`
+# block under PeerOrgs with a new Name/Domain — everything else in this
+# folder (configtx.yaml, scripts) follows the same pattern.
+
+OrdererOrgs:
+  - Name: Orderer
+    Domain: ayurveda.com
+    EnableNodeOUs: true
+    Specs:
+      - Hostname: orderer
+        SANS:
+          - localhost
+          - 127.0.0.1
+
+PeerOrgs:
+  - Name: Org1
+    Domain: org1.ayurveda.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+        - 127.0.0.1
+    Users:
+      Count: 1

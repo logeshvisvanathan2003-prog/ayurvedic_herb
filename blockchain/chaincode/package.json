@@ -1,0 +1,16 @@
+{
+  "name": "ayurveda-traceability-chaincode",
+  "version": "1.0.0",
+  "description": "Hyperledger Fabric smart contract for Ayurvedic herb geo-tagged traceability (AYUSH SIH problem statement)",
+  "main": "index.js",
+  "scripts": {
+    "start:server": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "fabric-contract-api": "^2.5.4",
+    "fabric-shim": "^2.5.4"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "ayurveda-fabric-gateway-bridge",
+  "version": "1.0.0",
+  "description": "REST bridge so the Python/Flask backend can submit real transactions to the Hyperledger Fabric network",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.10.6",
+    "@hyperledger/fabric-gateway": "^1.5.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

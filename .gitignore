@@ -1,0 +1,38 @@
+# ── Dependencies (regenerable via npm install / pip install) ──
+node_modules/
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# ── Build output ──
+dist/
+build/
+*.tsbuildinfo
+
+# ── Environment / secrets ──
+.env
+.env.local
+.env.*.local
+*/gateway-api/.env
+
+# ── Fabric network generated/sensitive state — DO NOT COMMIT ──
+# crypto-config contains real private keys for your Fabric identities.
+# channel-artifacts, data, logs, config are all regenerated locally by
+# blockchain/network/scripts/*.sh — no need to version them either.
+blockchain/network/crypto-config/
+blockchain/network/channel-artifacts/
+blockchain/network/data/
+blockchain/network/logs/
+blockchain/network/config/
+
+# ── Chaincode packaging artifacts ──
+blockchain/network/data/*.tar.gz
+
+# ── OS / editor cruft ──
+.DS_Store
+.vscode/
+*.log
+
+# ── Backend uploads (user-submitted files, not source) ──
+backend/uploads/
