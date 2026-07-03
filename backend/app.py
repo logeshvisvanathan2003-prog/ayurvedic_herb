@@ -988,6 +988,44 @@ def search_product():
 # transport-stage scams (cloned labels, diverted trucks, fake deliveries)
 # ══════════════════════════════════════════════════════════════════
 
+@app.route('/api/logistics/scan/<token>', methods=['GET'])
+def logistics_scan(token):
+    """Public: powers the page a courier/receiver lands on after scanning a
+    dispatch QR — full batch context, lab status, and this specific leg's
+    pickup/delivery details, everything needed to confirm receipt on the spot."""
+    try:
+        conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""SELECT ct.*, hb.herb_species, hb.quantity_kg, hb.moisture_level, hb.harvest_date,
+                       hb.location_name, hb.gps_lat AS farm_gps_lat, hb.gps_lng AS farm_gps_lng,
+                       u.full_name AS farmer_name
+                       FROM custody_transfers ct
+                       LEFT JOIN herb_batches hb ON ct.batch_id=hb.batch_id
+                       LEFT JOIN users u ON hb.farmer_id=u.id
+                       WHERE ct.transfer_token=%s""",(token,))
+        transfer=cur.fetchone()
+        if not transfer:
+            cur.close(); conn.close()
+            return jsonify({'error':'Unknown QR — this transfer token was not issued by this system.'}),404
+        transfer=dict(transfer)
+        bid=transfer['batch_id']
+
+        cur.execute("""SELECT overall_status,moisture_content,pesticide_residue_result,dna_auth_result,
+                       heavy_metal_result,microbial_count,tested_by,tested_at
+                       FROM lab_tests WHERE batch_id=%s ORDER BY tested_at DESC LIMIT 1""",(bid,))
+        lab=cur.fetchone()
+
+        cur.execute("SELECT product_id,product_name FROM products WHERE batch_id=%s LIMIT 1",(bid,))
+        product=cur.fetchone()
+
+        cur.close(); conn.close()
+        return jsonify({
+            'transfer': serialize(transfer),
+            'lab_test': serialize(dict(lab)) if lab else None,
+            'product': serialize(dict(product)) if product else None,
+        })
+    except Exception as e: return jsonify({'error':str(e)}),500
+
+
 @app.route('/api/logistics/dispatch', methods=['POST'])
 @token_required
 @role_required('farmer','lab','admin')
@@ -1011,7 +1049,7 @@ def dispatch_shipment(cu):
                        VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,'dispatched') RETURNING *""",
                     (bid,token,data.get('from_stage',batch['status']),to_stage,cu['user_id'],data.get('courier_name'),data.get('vehicle_number'),data.get('pickup_gps_lat') or None,data.get('pickup_gps_lng') or None))
         rec=serialize(dict(cur.fetchone()))
-        qr=make_qr(json.dumps({'type':'custody_transfer','batch_id':bid,'token':token}))
+        qr=make_qr(f"{FRONTEND_URL}/logistics-scan?token={token}")
         cur.execute("UPDATE herb_batches SET status='in_transit' WHERE batch_id=%s",(bid,))
         record_audit(conn,'CUSTODY_DISPATCHED',cu['user_id'],'batch',bid,{'token':token,'to_stage':to_stage,'courier':data.get('courier_name'),'vehicle':data.get('vehicle_number')})
         conn.commit(); cur.close(); conn.close()

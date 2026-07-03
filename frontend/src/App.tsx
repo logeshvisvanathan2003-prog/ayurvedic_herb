@@ -6,6 +6,7 @@ import FarmerPortalPage      from '@/components/pages/FarmerPortalPage'
 import ProcessingUnitPage    from '@/components/pages/ProcessingUnitPage'
 import LaboratoryTestingPage from '@/components/pages/LaboratoryTestingPage'
 import LogisticsPortalPage   from '@/components/pages/LogisticsPortalPage'
+import LogisticsScanPage     from '@/components/pages/LogisticsScanPage'
 import ConsumerPortalPage    from '@/components/pages/ConsumerPortalPage'
 import ContactPage           from '@/components/pages/ContactPage'
 import AuthPage              from '@/components/pages/AuthPage'
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/processing-unit"    element={<ProcessingUnitPage />} />
         <Route path="/laboratory-testing" element={<LaboratoryTestingPage />} />
         <Route path="/logistics"          element={<LogisticsPortalPage />} />
+        <Route path="/logistics-scan"     element={<LogisticsScanPage />} />
         <Route path="/consumer-portal"    element={<ConsumerPortalPage />} />
         <Route path="/contact"            element={<ContactPage />} />
 
