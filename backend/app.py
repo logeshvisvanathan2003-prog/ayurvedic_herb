@@ -566,6 +566,30 @@ def login():
     except Exception as e: return jsonify({'error':str(e)}),500
 
 
+@app.route('/api/collector/pending-pickups', methods=['GET'])
+@token_required
+@role_required('collector','admin')
+def collector_pending_pickups(cu):
+    """Every lab-approved, QR-generated batch that hasn't been dispatched
+    yet — a Collector's 'ready for pickup' queue, so they don't need a
+    physical QR handed to them to know a shipment is waiting."""
+    try:
+        conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""SELECT hb.batch_id,hb.herb_species,hb.quantity_kg,hb.location_name,hb.gps_lat,hb.gps_lng,
+                       u.full_name AS farmer_name, p.product_id, p.created_at AS qr_generated_at,
+                       lt.overall_status AS lab_status
+                       FROM herb_batches hb
+                       JOIN products p ON p.batch_id=hb.batch_id
+                       JOIN lab_tests lt ON lt.batch_id=hb.batch_id AND lt.overall_status='approved'
+                       LEFT JOIN users u ON hb.farmer_id=u.id
+                       WHERE NOT EXISTS (SELECT 1 FROM custody_transfers ct WHERE ct.batch_id=hb.batch_id)
+                       ORDER BY p.created_at DESC""")
+        rows=[serialize(dict(r)) for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return jsonify({'pending_pickups':rows})
+    except Exception as e: return jsonify({'error':str(e)}),500
+
+
 @app.route('/api/production-unit/my-deliveries', methods=['GET'])
 @token_required
 @role_required('production_unit','admin')
