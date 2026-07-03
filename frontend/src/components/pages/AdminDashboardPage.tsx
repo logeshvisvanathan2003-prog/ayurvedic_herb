@@ -5,10 +5,11 @@ import {
   Users, Clock, CheckCircle2, XCircle, FileText, Shield, Eye,
   RefreshCw, ChevronDown, ChevronUp, Leaf, FlaskConical, User,
   AlertCircle, TrendingUp, Database, QrCode, BarChart3, Hash,
-  Truck, AlertTriangle, Link2
+  Truck, AlertTriangle, Link2, MapPin
 } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import JourneyMap, { JourneyPoint } from '@/components/JourneyMap'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/api'
 
@@ -30,6 +31,8 @@ interface LogisticsLeg {
   courier_name: string; vehicle_number: string; dispatched_at: string; delivered_at: string | null
   status: string; anomaly_flag: boolean; anomaly_reason: string | null
   dispatched_by_name: string; received_by_name: string | null
+  pickup_gps_lat?: number; pickup_gps_lng?: number; delivery_gps_lat?: number; delivery_gps_lng?: number
+  farm_gps_lat?: number; farm_gps_lng?: number; farm_location?: string
 }
 
 const ROLE_ICON: Record<string, React.FC<any>> = { farmer: Leaf, lab: FlaskConical, consumer: User }
@@ -89,6 +92,7 @@ export default function AdminDashboardPage() {
   const [logistics,      setLogistics]      = useState<LogisticsLeg[]>([])
   const [logisticsStats, setLogisticsStats] = useState<{ total: number; anomalies: number; in_transit: number }>({ total: 0, anomalies: 0, in_transit: 0 })
   const [logisticsLoading, setLogisticsLoading] = useState(false)
+  const [expandedMapRow, setExpandedMapRow] = useState<string | null>(null)
   const [chainVerifyResult, setChainVerifyResult] = useState<Record<string, { message: string; in_sync?: boolean; on_chain: boolean }>>({})
   const [chainVerifyLoading, setChainVerifyLoading] = useState<string | null>(null)
 
@@ -572,11 +576,23 @@ export default function AdminDashboardPage() {
                     <thead>
                       <tr>
                         <th>Batch</th><th>Route</th><th>Courier</th>
-                        <th>Dispatched</th><th>Delivered</th><th>Status</th><th>Blockchain</th><th></th>
+                        <th>Dispatched</th><th>Delivered</th><th>Status</th><th>Blockchain</th><th>Map</th><th></th>
                       </tr>
                     </thead>
                     <tbody>
-                      {logistics.map(leg => (
+                      {logistics.map(leg => {
+                        const points: JourneyPoint[] = []
+                        if (leg.farm_gps_lat && leg.farm_gps_lng) {
+                          points.push({ lat: leg.farm_gps_lat, lng: leg.farm_gps_lng, label: `Origin — ${leg.farm_location || 'Farm'}`, kind: 'farm' })
+                        }
+                        if (leg.pickup_gps_lat && leg.pickup_gps_lng) {
+                          points.push({ lat: leg.pickup_gps_lat, lng: leg.pickup_gps_lng, label: `Picked up — ${leg.from_stage || 'origin'}`, sublabel: `${leg.courier_name || 'Courier'} · ${new Date(leg.dispatched_at).toLocaleString('en-IN')}`, kind: leg.status === 'delivered' ? 'waypoint' : 'current' })
+                        }
+                        if (leg.delivery_gps_lat && leg.delivery_gps_lng) {
+                          points.push({ lat: leg.delivery_gps_lat, lng: leg.delivery_gps_lng, label: `Delivered — ${leg.to_stage}`, sublabel: leg.received_by_name ? `Received by ${leg.received_by_name}` : undefined, kind: 'current' })
+                        }
+                        return (
+                        <>
                         <tr key={leg.id}>
                           <td className="text-xs">
                             <p className="font-mono font-medium">{leg.batch_id}</p>
@@ -613,6 +629,13 @@ export default function AdminDashboardPage() {
                             )}
                           </td>
                           <td>
+                            <button onClick={() => setExpandedMapRow(expandedMapRow === leg.id ? null : leg.id)}
+                              disabled={points.length === 0}
+                              className="btn-ghost text-[0.65rem] flex items-center gap-1 px-2 py-1 disabled:opacity-30">
+                              <MapPin size={11} /> {expandedMapRow === leg.id ? 'Hide' : 'View'}
+                            </button>
+                          </td>
+                          <td>
                             <button onClick={() => resetBatchLogistics(leg.batch_id)}
                               title="Clear this batch's logistics history (testing only)"
                               className="text-[0.65rem] text-secondary/30 hover:text-red-500 transition-colors">
@@ -620,7 +643,16 @@ export default function AdminDashboardPage() {
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        {expandedMapRow === leg.id && (
+                          <tr>
+                            <td colSpan={9} className="p-0 border-t-0">
+                              <JourneyMap points={points} />
+                            </td>
+                          </tr>
+                        )}
+                        </>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

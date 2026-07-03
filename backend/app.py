@@ -1220,6 +1220,8 @@ def admin_list_logistics(cu):
         conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("""SELECT ct.id,ct.batch_id,hb.herb_species,ct.from_stage,ct.to_stage,ct.courier_name,ct.vehicle_number,
                        ct.dispatched_at,ct.delivered_at,ct.status,ct.anomaly_flag,ct.anomaly_reason,ct.receiver_name,
+                       ct.pickup_gps_lat,ct.pickup_gps_lng,ct.delivery_gps_lat,ct.delivery_gps_lng,
+                       hb.gps_lat AS farm_gps_lat, hb.gps_lng AS farm_gps_lng, hb.location_name AS farm_location,
                        u1.full_name AS dispatched_by_name, u2.full_name AS received_by_name
                        FROM custody_transfers ct
                        LEFT JOIN herb_batches hb ON ct.batch_id=hb.batch_id
