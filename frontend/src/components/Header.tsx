@@ -41,7 +41,7 @@ export default function Header() {
     farmer: '/farmer-portal',
     lab: '/laboratory-testing',
     consumer: '/consumer-portal',
-    collector: '/logistics',
+    collector: '/collector-dashboard',
     production_unit: '/production-unit',
   }
   const dashboardPath = userRole ? dashboardPathByRole[userRole] || '/' : '/'

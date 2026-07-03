@@ -12,7 +12,7 @@ const ROLE_CONFIG = {
   consumer: { bg: 'bg-gold',      title: 'Consumer Portal',   redirect: '/consumer-portal',    icon: User,         color: 'gold'      },
   lab:      { bg: 'bg-secondary', title: 'Laboratory Portal', redirect: '/laboratory-testing', icon: FlaskConical, color: 'secondary' },
   admin:    { bg: 'bg-secondary', title: 'Admin Portal',      redirect: '/admin', icon: User, color: 'secondary' },
-  collector:{ bg: 'bg-gold',      title: 'Collector Portal',  redirect: '/logistics',          icon: Truck,        color: 'gold'      },
+  collector:{ bg: 'bg-gold',      title: 'Collector Portal',  redirect: '/collector-dashboard', icon: Truck,        color: 'gold'      },
   production_unit: { bg: 'bg-primary', title: 'Production Unit Portal', redirect: '/production-unit', icon: Package, color: 'primary' },
 }
 

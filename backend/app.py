@@ -590,6 +590,27 @@ def collector_pending_pickups(cu):
     except Exception as e: return jsonify({'error':str(e)}),500
 
 
+@app.route('/api/collector/my-dispatches', methods=['GET'])
+@token_required
+@role_required('collector','admin')
+def my_dispatches(cu):
+    """Every shipment this collector has dispatched, most recent first."""
+    try:
+        conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""SELECT ct.batch_id,ct.from_stage,ct.to_stage,ct.courier_name,ct.vehicle_number,
+                       ct.dispatched_at,ct.delivered_at,ct.status,ct.anomaly_flag,ct.receiver_name,
+                       hb.herb_species,hb.quantity_kg,u.full_name AS farmer_name
+                       FROM custody_transfers ct
+                       LEFT JOIN herb_batches hb ON ct.batch_id=hb.batch_id
+                       LEFT JOIN users u ON hb.farmer_id=u.id
+                       WHERE ct.dispatched_by=%s
+                       ORDER BY ct.dispatched_at DESC""",(cu['user_id'],))
+        rows=[serialize(dict(r)) for r in cur.fetchall()]
+        cur.close(); conn.close()
+        return jsonify({'dispatches':rows})
+    except Exception as e: return jsonify({'error':str(e)}),500
+
+
 @app.route('/api/production-unit/my-deliveries', methods=['GET'])
 @token_required
 @role_required('production_unit','admin')
