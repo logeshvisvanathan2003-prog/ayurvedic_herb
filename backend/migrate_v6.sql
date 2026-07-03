@@ -83,7 +83,8 @@ CREATE TABLE IF NOT EXISTS products(
     manufacturing_date DATE,
     expiry_date DATE,
     is_public BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMP DEFAULT NOW(),
+    generated_by UUID REFERENCES users(id)
 );
 
 CREATE TABLE IF NOT EXISTS consumer_scans(
@@ -188,6 +189,7 @@ ALTER TABLE herb_batches ADD COLUMN IF NOT EXISTS recall_reason TEXT;
 ALTER TABLE herb_batches ADD COLUMN IF NOT EXISTS geofence_flag TEXT;
 
 ALTER TABLE products ADD COLUMN IF NOT EXISTS recalled BOOLEAN DEFAULT FALSE;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS generated_by UUID REFERENCES users(id);
 
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS courier_name VARCHAR(255);
 ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS vehicle_number VARCHAR(100);

@@ -26,6 +26,7 @@ interface Product {
   lab_status: string; tested_by: string; tested_at: string
   moisture_report_url: string; pesticide_report_url: string; dna_certificate_url: string
   recalled?: boolean; batch_recalled?: boolean; recall_reason?: string; geofence_flag?: string
+  production_unit_name?: string; production_unit_contact?: string
 }
 
 interface CustodyLeg {
@@ -318,6 +319,7 @@ export default function ConsumerPortalPage() {
                     <InfoRow label="Description" value={product.description} />
                     <InfoRow label="Batch Reference" value={product.batch_id} />
                     <InfoRow label="Manufactured" value={product.manufacturing_date ? new Date(product.manufacturing_date).toLocaleDateString('en-IN') : undefined} />
+                    <InfoRow label="Production Unit" value={product.production_unit_name || product.production_unit_contact} />
                     <InfoRow label="Expires" value={product.expiry_date ? new Date(product.expiry_date).toLocaleDateString('en-IN') : undefined} />
                   </Section>
 

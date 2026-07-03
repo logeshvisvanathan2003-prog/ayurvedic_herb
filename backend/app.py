@@ -973,8 +973,8 @@ def gen_qr(cu):
         ex=cur.fetchone()
         if ex: cur.close(); conn.close(); return jsonify({'error':'QR already exists','product_id':ex['product_id']}),409
         pid=f"PROD-{uuid.uuid4().hex[:10].upper()}"; scan=f"{FRONTEND_URL}/consumer-portal?pid={pid}"; qr=make_qr(scan)
-        cur.execute("INSERT INTO products(product_id,batch_id,qr_code_data,product_name,description,manufacturing_date,expiry_date) VALUES(%s,%s,%s,%s,%s,%s,%s) RETURNING *",
-                    (pid,bid,f"data:image/png;base64,{qr}",data.get('product_name') or f"Herb - {batch['herb_species']}",data.get('description'),data.get('manufacturing_date') or datetime.now().date(),data.get('expiry_date')))
+        cur.execute("INSERT INTO products(product_id,batch_id,qr_code_data,product_name,description,manufacturing_date,expiry_date,generated_by) VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *",
+                    (pid,bid,f"data:image/png;base64,{qr}",data.get('product_name') or f"Herb - {batch['herb_species']}",data.get('description'),data.get('manufacturing_date') or datetime.now().date(),data.get('expiry_date'),cu['user_id']))
         product=serialize(dict(cur.fetchone()))
         record_audit(conn,'QR_GENERATED',cu['user_id'],'product',pid,{'batch_id':bid,'product_id':pid})
         conn.commit(); cur.close(); conn.close()
@@ -1000,11 +1000,14 @@ def scan_product(pid):
             hb.batch_id,hb.herb_species,hb.quantity_kg,hb.moisture_level,hb.harvest_date,hb.farming_practices,hb.gps_lat,hb.gps_lng,hb.location_name,hb.image_url AS herb_image,hb.recalled AS batch_recalled,hb.recall_reason,hb.geofence_flag,
             u.full_name AS farmer_name,u.address AS farm_address,
             pr.drying_method,pr.drying_duration_hours,pr.grinding_status,pr.grinding_particle_sz AS grinding_particle_size,pr.storage_temperature,pr.storage_humidity,pr.storage_location,pr.chain_of_custody,
-            lt.moisture_content,lt.pesticide_residue_result,lt.pesticide_report_url,lt.dna_auth_result,lt.dna_certificate_url,lt.heavy_metal_result,lt.microbial_count,lt.overall_status AS lab_status,lt.tested_by,lt.tested_at,lt.moisture_report_url
+            lt.moisture_content,lt.pesticide_residue_result,lt.pesticide_report_url,lt.dna_auth_result,lt.dna_certificate_url,lt.heavy_metal_result,lt.microbial_count,lt.overall_status AS lab_status,lt.tested_by,lt.tested_at,lt.moisture_report_url,
+            pu.full_name AS production_unit_contact, pup.unit_name AS production_unit_name
             FROM products p JOIN herb_batches hb ON p.batch_id=hb.batch_id
             LEFT JOIN users u ON hb.farmer_id=u.id
             LEFT JOIN processing_records pr ON hb.batch_id=pr.batch_id
             LEFT JOIN lab_tests lt ON hb.batch_id=lt.batch_id
+            LEFT JOIN users pu ON p.generated_by=pu.id
+            LEFT JOIN user_profiles pup ON pup.user_id=pu.id
             WHERE p.product_id=%s AND p.is_public=TRUE""",(pid,))
         row=cur.fetchone()
         if row:
