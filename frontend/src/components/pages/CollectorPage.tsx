@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Truck, Loader2, CheckCircle2, Leaf, MapPin, Lock, Camera, Clock, AlertTriangle } from 'lucide-react'
+import { Truck, Loader2, CheckCircle2, Leaf, MapPin, Lock, Camera, Clock, AlertTriangle, QrCode, ChevronDown } from 'lucide-react'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import QrScannerModal from '@/components/QrScannerModal'
@@ -11,7 +11,7 @@ import api from '@/lib/api'
 const STAGES = ['processing', 'lab', 'manufacturer', 'distributor', 'retail']
 
 interface Dispatch {
-  batch_id: string; from_stage: string; to_stage: string
+  batch_id: string; transfer_token: string; from_stage: string; to_stage: string
   courier_name: string; vehicle_number: string
   dispatched_at: string; delivered_at: string | null; status: string
   anomaly_flag: boolean; receiver_name: string | null
@@ -31,6 +31,21 @@ export default function CollectorPage() {
 
   const [dispatches, setDispatches] = useState<Dispatch[]>([])
   const [loading, setLoading] = useState(false)
+  const [expandedToken, setExpandedToken] = useState<string | null>(null)
+  const [qrInfo, setQrInfo] = useState<Record<string, { qr_code: string; used: boolean; message: string }>>({})
+  const [qrLoading, setQrLoading] = useState<string | null>(null)
+
+  const toggleExpand = async (token: string) => {
+    if (expandedToken === token) { setExpandedToken(null); return }
+    setExpandedToken(token)
+    if (qrInfo[token]) return
+    setQrLoading(token)
+    try {
+      const { data } = await api.get(`/logistics/qr-image/${token}`)
+      setQrInfo(prev => ({ ...prev, [token]: data }))
+    } catch {}
+    setQrLoading(null)
+  }
 
   const load = async () => {
     setLoading(true)
@@ -211,28 +226,60 @@ export default function CollectorPage() {
 
           <div className="space-y-4">
             {dispatches.map(d => (
-              <div key={`${d.batch_id}-${d.dispatched_at}`} className="bg-white border border-secondary/7 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-gold/20 flex items-center justify-center shrink-0">
-                    <Leaf size={18} className="text-secondary" />
+              <div key={d.transfer_token} className="bg-white border border-secondary/7">
+                <button onClick={() => toggleExpand(d.transfer_token)}
+                  className="w-full p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 text-left hover:bg-secondary/2 transition-colors">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-gold/20 flex items-center justify-center shrink-0">
+                      <Leaf size={18} className="text-secondary" />
+                    </div>
+                    <div>
+                      <p className="font-heading text-sm uppercase flex items-center gap-2">
+                        {d.herb_species}
+                        <ChevronDown size={14} className={`text-secondary/30 transition-transform ${expandedToken === d.transfer_token ? 'rotate-180' : ''}`} />
+                      </p>
+                      <p className="font-mono text-xs text-secondary/50">{d.batch_id}</p>
+                      <p className="font-body text-xs text-secondary/50 mt-1">
+                        {d.quantity_kg}kg · from {d.farmer_name || 'farmer'} · to {d.to_stage}
+                      </p>
+                      <p className="font-body text-xs text-secondary/40">
+                        Dispatched {new Date(d.dispatched_at).toLocaleString('en-IN')}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-heading text-sm uppercase">{d.herb_species}</p>
-                    <p className="font-mono text-xs text-secondary/50">{d.batch_id}</p>
-                    <p className="font-body text-xs text-secondary/50 mt-1">
-                      {d.quantity_kg}kg · from {d.farmer_name || 'farmer'} · to {d.to_stage}
-                    </p>
-                    <p className="font-body text-xs text-secondary/40">
-                      Dispatched {new Date(d.dispatched_at).toLocaleString('en-IN')}
-                    </p>
+                  {d.anomaly_flag ? (
+                    <span className="badge badge-red gap-1 shrink-0"><AlertTriangle size={11} /> Flagged</span>
+                  ) : d.status === 'delivered' ? (
+                    <span className="badge badge-green gap-1 shrink-0"><CheckCircle2 size={11} /> Delivered</span>
+                  ) : (
+                    <span className="badge badge-gold gap-1 shrink-0"><Clock size={11} /> In Transit</span>
+                  )}
+                </button>
+
+                {expandedToken === d.transfer_token && (
+                  <div className="px-6 pb-6 pt-2 border-t border-secondary/5 flex flex-col md:flex-row items-center gap-5">
+                    {qrLoading === d.transfer_token ? (
+                      <Loader2 size={22} className="animate-spin text-secondary/30" />
+                    ) : qrInfo[d.transfer_token] ? (
+                      <>
+                        <img
+                          src={qrInfo[d.transfer_token].qr_code}
+                          alt="Dispatch QR"
+                          className={`w-28 h-28 shrink-0 ${qrInfo[d.transfer_token].used ? 'opacity-30 grayscale' : ''}`}
+                        />
+                        <div>
+                          <p className="font-heading text-xs uppercase mb-1 flex items-center gap-2">
+                            <QrCode size={13} className={qrInfo[d.transfer_token].used ? 'text-secondary/40' : 'text-primary'} />
+                            {qrInfo[d.transfer_token].used ? 'QR Already Scanned' : 'QR Still Valid'}
+                          </p>
+                          <p className="font-body text-xs text-secondary/60">{qrInfo[d.transfer_token].message}</p>
+                          <p className="font-body text-[0.65rem] text-secondary/40 mt-2">Every dispatch QR can only be scanned once — this prevents cloned or reused labels.</p>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="font-body text-xs text-secondary/40">Could not load QR.</p>
+                    )}
                   </div>
-                </div>
-                {d.anomaly_flag ? (
-                  <span className="badge badge-red gap-1 shrink-0"><AlertTriangle size={11} /> Flagged</span>
-                ) : d.status === 'delivered' ? (
-                  <span className="badge badge-green gap-1 shrink-0"><CheckCircle2 size={11} /> Delivered</span>
-                ) : (
-                  <span className="badge badge-gold gap-1 shrink-0"><Clock size={11} /> In Transit</span>
                 )}
               </div>
             ))}

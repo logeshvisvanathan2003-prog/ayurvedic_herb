@@ -590,6 +590,29 @@ def collector_pending_pickups(cu):
     except Exception as e: return jsonify({'error':str(e)}),500
 
 
+@app.route('/api/logistics/qr-image/<token>', methods=['GET'])
+def logistics_qr_image(token):
+    """Regenerates the dispatch QR image for a given transfer token on demand
+    (QR images aren't stored, only the token/data are) and reports whether
+    it's already been redeemed — powers the 'click to view QR' + single-use
+    status shown in Collector/Production Unit dashboards."""
+    try:
+        conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT batch_id,status,delivered_at,receiver_name FROM custody_transfers WHERE transfer_token=%s",(token,))
+        t=cur.fetchone(); cur.close(); conn.close()
+        if not t: return jsonify({'error':'Unknown transfer token'}),404
+        qr=make_qr(f"{FRONTEND_URL}/logistics-scan?token={token}")
+        used = t['status'] == 'delivered'
+        return jsonify({
+            'qr_code': f"data:image/png;base64,{qr}",
+            'used': used,
+            'status': t['status'],
+            'message': f"✓ Already scanned — delivered {('to ' + t['receiver_name']) if t['receiver_name'] else ''} on {t['delivered_at']}" if used
+                       else "⏳ Valid — not yet scanned. This QR can only be used once."
+        })
+    except Exception as e: return jsonify({'error':str(e)}),500
+
+
 @app.route('/api/collector/my-dispatches', methods=['GET'])
 @token_required
 @role_required('collector','admin')
@@ -597,7 +620,7 @@ def my_dispatches(cu):
     """Every shipment this collector has dispatched, most recent first."""
     try:
         conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("""SELECT ct.batch_id,ct.from_stage,ct.to_stage,ct.courier_name,ct.vehicle_number,
+        cur.execute("""SELECT ct.batch_id,ct.transfer_token,ct.from_stage,ct.to_stage,ct.courier_name,ct.vehicle_number,
                        ct.dispatched_at,ct.delivered_at,ct.status,ct.anomaly_flag,ct.receiver_name,
                        hb.herb_species,hb.quantity_kg,u.full_name AS farmer_name
                        FROM custody_transfers ct
