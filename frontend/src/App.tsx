@@ -14,6 +14,7 @@ import ApplicationStatusPage from '@/components/pages/ApplicationStatusPage'
 import AdminDashboardPage    from '@/components/pages/AdminDashboardPage'
 import AdminRegisterPage     from '@/components/pages/AdminRegisterPage'
 import ProductionUnitPage    from '@/components/pages/ProductionUnitPage'
+import CollectorPage         from '@/components/pages/CollectorPage'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -64,6 +65,7 @@ export default function App() {
         {/* ── Collector — picks up from farm/lab, dispatches shipments ── */}
         <Route path="/collector-login"    element={<AuthPage role="collector" type="login" />} />
         <Route path="/collector-register" element={<AuthPage role="collector" type="register" />} />
+        <Route path="/collector-dashboard" element={<CollectorPage />} />
 
         {/* ── Production Unit — confirms delivery, generates final product QR ── */}
         <Route path="/production-login"    element={<AuthPage role="production_unit" type="login" />} />
