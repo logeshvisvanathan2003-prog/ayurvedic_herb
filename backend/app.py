@@ -590,6 +590,33 @@ def collector_pending_pickups(cu):
     except Exception as e: return jsonify({'error':str(e)}),500
 
 
+@app.route('/api/products/<pid>/qr-image', methods=['GET'])
+def product_qr_image(pid):
+    """Regenerates a product's consumer-facing QR image on demand (not
+    stored separately) plus a dispatch-status hint. Unlike the internal
+    collector/production handoff QRs, this one is intentionally NOT
+    single-use — consumers should be able to scan it unlimited times for
+    ongoing authenticity/quality verification."""
+    try:
+        conn=get_db(); cur=conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SELECT product_id,batch_id,product_name FROM products WHERE product_id=%s",(pid,))
+        p=cur.fetchone()
+        if not p: cur.close(); conn.close(); return jsonify({'error':'Product not found'}),404
+        scan=f"{FRONTEND_URL}/consumer-portal?pid={pid}"; qr=make_qr(scan)
+        cur.execute("SELECT status FROM custody_transfers WHERE batch_id=%s ORDER BY dispatched_at DESC LIMIT 1",(p['batch_id'],))
+        ct=cur.fetchone()
+        cur.close(); conn.close()
+        dispatch_status = ct['status'] if ct else 'not_dispatched'
+        status_message = {
+            'not_dispatched': '⏳ Awaiting pickup — no collector has dispatched this batch yet.',
+            'dispatched': '🚚 In transit — a collector has picked this batch up.',
+            'delivered': '✓ Delivered to production unit.',
+        }.get(dispatch_status, '')
+        return jsonify({'qr_code': f"data:image/png;base64,{qr}", 'scan_url': scan,
+                        'dispatch_status': dispatch_status, 'message': status_message})
+    except Exception as e: return jsonify({'error':str(e)}),500
+
+
 @app.route('/api/logistics/qr-image/<token>', methods=['GET'])
 def logistics_qr_image(token):
     """Regenerates the dispatch QR image for a given transfer token on demand

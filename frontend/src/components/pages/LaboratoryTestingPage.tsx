@@ -85,6 +85,17 @@ export default function LaboratoryTestingPage() {
   const [qrLoading,    setQrLoading]    = useState(false)
   const [qrResult,     setQrResult]     = useState<QRResult | null>(null)
   const [qrError,      setQrError]      = useState('')
+  const [viewedQr,     setViewedQr]     = useState<{ qr_code: string; dispatch_status: string; message: string } | null>(null)
+  const [viewQrLoading, setViewQrLoading] = useState(false)
+
+  const viewExistingQr = async (pid: string) => {
+    setViewQrLoading(true)
+    try {
+      const { data } = await api.get(`/products/${pid}/qr-image`)
+      setViewedQr(data)
+    } catch {}
+    setViewQrLoading(false)
+  }
 
   /* active pipeline step */
   const activeStep = selectedBatch
@@ -402,9 +413,26 @@ export default function LaboratoryTestingPage() {
                       {(qrResult || selectedBatch.product_id) ? (
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                           className="flex flex-col md:flex-row gap-6 items-center p-6 bg-primary/5 border border-primary/20">
-                          {qrResult?.qr_code && (
+                          {qrResult?.qr_code ? (
                             <img src={qrResult.qr_code} alt="QR Code" className="w-36 h-36 shrink-0 border border-secondary/10" />
-                          )}
+                          ) : viewedQr?.qr_code ? (
+                            <img src={viewedQr.qr_code} alt="QR Code" className="w-36 h-36 shrink-0 border border-secondary/10" />
+                          ) : selectedBatch.product_id ? (
+                            <button
+                              onClick={() => viewExistingQr(selectedBatch.product_id!)}
+                              disabled={viewQrLoading}
+                              className="w-36 h-36 shrink-0 border border-secondary/10 bg-secondary/5 flex flex-col items-center justify-center gap-2 hover:bg-secondary/10 transition-colors"
+                            >
+                              {viewQrLoading ? (
+                                <Loader2 size={20} className="animate-spin text-secondary/40" />
+                              ) : (
+                                <>
+                                  <QrCode size={24} className="text-secondary/40" />
+                                  <span className="font-heading text-[0.6rem] uppercase text-secondary/50">View QR</span>
+                                </>
+                              )}
+                            </button>
+                          ) : null}
                           <div className="flex-1 text-center md:text-left">
                             <p className="badge badge-green mb-3">QR Generated Successfully</p>
                             <p className="font-heading text-sm uppercase mb-1">Product ID</p>
@@ -426,6 +454,9 @@ export default function LaboratoryTestingPage() {
                                 Consumer URL: <span className="text-gold font-mono normal-case">/consumer-portal?pid={qrResult?.product_id || selectedBatch.product_id}</span>
                               </div>
                             </div>
+                            {viewedQr?.message && (
+                              <p className="font-body text-xs text-secondary/60 mt-3">{viewedQr.message}</p>
+                            )}
                           </div>
                         </motion.div>
                       ) : canGenerateQR ? (
